@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HireLens AI — Intelligent Resume Screening &amp; Candidate Shortlisting</title>
+<style>
+/* ============ HireLens design tokens — enterprise palette ============ */
+:root{
+  --bg:#F7F8FA;--panel:#FFFFFF;--panel2:#F2F4F7;--line:#E5E7EB;--line2:#D0D5DD;
+  --text:#111827;--muted:#667085;--faint:#98A2B3;
+  --accent:#3157D5;--accent-soft:#EEF2FF;
+  --ok:#16805C;--warn:#B7791F;--bad:#C2414A;
+  --shadow:0 1px 2px rgba(16,24,40,.06);--shadow2:0 4px 12px rgba(16,24,40,.10);
+  --r-sm:6px;--r-md:8px;--r-lg:10px;
+  --side-w:240px;--top-h:56px;
+}
+[data-theme="dark"]{
+  --bg:#11151C;--panel:#171C24;--panel2:#1E2530;--line:#2A313D;--line2:#39424F;
+  --text:#E6E9EF;--muted:#98A2B3;--faint:#667085;
+  --accent:#6E8BEE;--accent-soft:#1B2337;
+  --ok:#52AE8F;--warn:#D2A144;--bad:#D96A72;
+  --shadow:0 1px 2px rgba(0,0,0,.4);--shadow2:0 4px 14px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.5 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;letter-spacing:-.01em;font-weight:600}
+h1{font-size:20px}h2{font-size:14.5px}h3{font-size:13px}
+p{margin:0}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.muted{color:var(--muted)}.small{font-size:12.5px}
+/* ---------- login: split B2B layout ---------- */
+.login-wrap{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr;background:var(--panel)}
+.login-brand{display:flex;flex-direction:column;justify-content:center;gap:0;padding:clamp(28px,6vw,72px);background:var(--panel2);border-right:1px solid var(--line)}
+.login-brand h1{font-size:26px;margin:18px 0 6px}
+.login-brand .lede{color:var(--muted);font-size:15px;max-width:420px}
+.featlist{list-style:none;margin:26px 0 0;padding:0;display:grid;gap:12px}
+.featlist li{display:flex;gap:10px;align-items:flex-start;color:var(--text);font-size:14px}
+.featlist svg.i{color:var(--ok);margin-top:2px}
+.featlist .small{display:block;color:var(--muted)}
+.login-card{display:flex;flex-direction:column;justify-content:center;padding:clamp(28px,6vw,72px)}
+.login-card form{width:min(380px,100%);margin:0 auto}
+.login-card label,.field label{display:block;font-size:13px;font-weight:500;color:var(--text);margin:0 0 4px}
+.login-card input{margin-bottom:14px}
+.form-err{color:var(--bad);min-height:20px;margin:-4px 0 8px;font-size:13px}
+.hint{color:var(--muted);font-size:12px;margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.block{width:100%;justify-content:center;margin-bottom:10px}
+input,select,textarea{width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-sm);padding:7px 10px}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+input[type=checkbox]{width:auto}
+textarea{resize:vertical}
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-sm);padding:6px 12px;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .12s,border-color .12s;white-space:nowrap;color:var(--text)}
+.btn:hover:not(:disabled){background:var(--panel2)}.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover:not(:disabled){background:#2A4BC0}
+.btn.ok{color:var(--ok)}.btn.bad{color:var(--bad)}
+.btn.sm{padding:3px 9px;font-size:12.5px}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--r-sm);border:1px solid transparent;background:none;color:var(--muted);cursor:pointer}
+.iconbtn:hover{background:var(--panel2);color:var(--text)}
+.spin{width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* ---------- app shell ---------- */
+.shell{display:grid;grid-template-columns:var(--side-w) 1fr;min-height:100vh}
+.side{background:var(--panel);border-right:1px solid var(--line);padding:12px 10px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:1px;overflow:auto}
+.side .logo{font-size:16px;padding:6px 10px 14px;display:flex;align-items:center;gap:9px;font-weight:700}
+.side .logo b{color:var(--accent);font-weight:700}
+.navgroup{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:14px 10px 4px}
+.nav{display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:var(--r-sm);color:var(--muted);font-size:13.5px;cursor:pointer}
+.nav:hover{background:var(--panel2);color:var(--text);text-decoration:none}
+.nav.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav .i{width:15px;height:15px}
+.rai{margin-top:auto;border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 10px;color:var(--muted);font-size:11.5px;line-height:1.45}
+.mainwrap{min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:10px;padding:0 clamp(14px,3vw,28px);height:var(--top-h);border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+.topbar .grow{flex:1}
+.crumb{display:flex;align-items:center;gap:7px;font-size:13.5px;min-width:0}
+.crumb b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumb .sep{color:var(--faint)}
+.topsearch{max-width:260px;flex:0 1 240px}
+.topsearch input{padding:5px 10px;font-size:13px;background:var(--panel2);border-color:transparent}
+.topsearch input:focus{background:var(--panel);border-color:var(--accent)}
+.menu-btn{display:none}
+.dd{position:relative}
+.dd-menu{position:absolute;right:0;top:110%;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow2);padding:5px;display:none;z-index:20}
+.dd.open .dd-menu{display:block}
+.dd-menu button{display:block;width:100%;text-align:left;background:none;border:0;padding:7px 10px;border-radius:var(--r-sm);cursor:pointer;font-size:13.5px}
+.dd-menu button:hover{background:var(--panel2)}
+.dd-menu .dd-note{padding:6px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:600;font-size:12px}
+.notifdot{position:relative}
+.notifdot::after{content:"";position:absolute;top:5px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--bad)}
+main{padding:22px clamp(14px,3vw,28px) 40px;flex:1}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.between{justify-content:space-between}
+.grid{display:grid;gap:14px}
+.g5{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;min-width:0;box-shadow:var(--shadow)}
+.card>h2{margin-bottom:10px}
+.stat{padding:14px 16px}
+.stat b{display:block;font-size:22px;line-height:1.2;font-weight:600}
+.stat span{color:var(--muted);font-size:12.5px}
+.kpi b{font-size:22px}
+.banner{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-sm);background:var(--panel);padding:12px 16px;margin-bottom:14px}
+/* ---------- tables: dense enterprise grid ---------- */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel)}
+.tablewrap table{border:0}
+.tablewrap thead th{position:sticky;top:0;background:var(--panel2);z-index:1;box-shadow:inset 0 -1px 0 var(--line)}
+.rt tbody tr:hover{background:var(--panel2)}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--text)}
+th.sorted{color:var(--text)}
+th.sorted .arr{color:var(--accent)}
+td .sub{display:block;color:var(--muted);font-size:12px}
+.scorecell{display:flex;align-items:center;gap:8px;min-width:110px}
+.scorecell b{font-weight:600;font-variant-numeric:tabular-nums}
+.minibar{flex:1;max-width:64px;height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.minibar i{display:block;height:100%;background:var(--accent)}
+.minibar i.good{background:var(--ok)}.minibar i.warn{background:var(--warn)}.minibar i.bad{background:var(--bad)}
+.badge{display:inline-block;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 35%,transparent);background:color-mix(in srgb,var(--c) 10%,transparent);border-radius:99px;padding:1px 9px;font-size:12px;font-weight:500;white-space:nowrap}
+.chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:0 7px;margin:2px 4px 2px 0;font-size:12px;line-height:20px}
+.chip.y{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+.chip.n{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,transparent)}
+.bar{display:grid;grid-template-columns:110px 1fr 42px;gap:10px;align-items:center;margin:6px 0;font-size:13px}
+.bar b{text-align:right;font-variant-numeric:tabular-nums}
+.track{height:6px;background:var(--panel2);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.track i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.ring{width:92px;height:92px;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--p)*1%),var(--line) 0);display:grid;place-items:center;flex:none}
+.ring b{width:72px;height:72px;border-radius:50%;background:var(--panel);display:grid;place-items:center;font-size:19px;font-weight:600}
+ul.plain{margin:0;padding-left:18px}ul.plain li{margin:3px 0}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.filters>*{flex:1 1 150px;width:auto}
+.filters .grow0{flex:0 0 auto}
+.empty{border:1px dashed var(--line2);border-radius:var(--r-md);padding:26px;text-align:center;color:var(--muted);background:var(--panel)}
+.cmp th:first-child,.cmp td:first-child{color:var(--muted);width:140px}
+.donut{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.donut svg{width:120px;height:120px}.dn{fill:var(--text);font-size:20px;font-weight:600}
+.legend{list-style:none;margin:0;padding:0}.legend li{display:flex;gap:8px;align-items:center;margin:3px 0;font-size:13px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+svg.cols{width:100%;max-height:170px}
+.col{fill:var(--accent)}.cv{fill:var(--text);font-size:11px;text-anchor:middle}.cl{fill:var(--muted);font-size:10px;text-anchor:middle}
+.field{margin-bottom:12px}
+.formsec{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);border-top:1px solid var(--line);padding-top:14px;margin:16px 0 10px}
+.formsec:first-child{border-top:0;padding-top:0;margin-top:0}
+.foot{padding:14px clamp(14px,3vw,28px);border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+/* ---------- modal / toast / errors ---------- */
+.modal-bg{position:fixed;inset:0;background:rgba(16,24,40,.5);display:grid;place-items:center;padding:16px;z-index:50}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);width:min(600px,100%);max-height:90vh;overflow:auto;padding:20px;box-shadow:var(--shadow2)}
+.modal h2{margin-bottom:12px;font-size:16px}
+#toasts{position:fixed;right:16px;bottom:16px;display:grid;gap:8px;z-index:60}
+.toast{background:var(--panel);border:1px solid var(--line2);border-left:3px solid var(--ok);border-radius:var(--r-sm);padding:8px 14px;box-shadow:var(--shadow2);font-size:13.5px}
+.toast.err{border-left-color:var(--bad)}
+#devErr{position:fixed;left:0;right:0;bottom:0;background:#3a0f18;color:#ffd7dc;border-top:2px solid var(--bad);padding:10px 16px;z-index:100;font:13px/1.5 ui-monospace,Consolas,monospace}
+#devErr[hidden]{display:none}
+#devErr button{margin-left:10px;background:#f16a78;color:#1b0409;border:0;border-radius:var(--r-sm);padding:4px 10px;cursor:pointer}
+/* ---------- report document ---------- */
+.report{max-width:800px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:36px 40px;box-shadow:var(--shadow)}
+.report h1{font-size:19px}
+.report h2{margin:20px 0 8px;border-bottom:1px solid var(--line);padding-bottom:5px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.defrow{display:grid;grid-template-columns:150px 1fr;gap:8px;padding:4px 0;font-size:13.5px}
+.defrow dt{color:var(--muted)}
+.testrow{display:flex;gap:8px;align-items:flex-start;margin:4px 0;font-size:13.5px}
+/* ---------- rank / simulator / eval / fairness ---------- */
+.rank-badge{display:inline-grid;place-items:center;min-width:30px;height:22px;padding:0 5px;border-radius:var(--r-sm);background:var(--panel2);border:1px solid var(--line);font-weight:600;font-size:12px;font-variant-numeric:tabular-nums}
+.rank-badge.top{background:var(--accent);border-color:var(--accent);color:#fff}
+.slider{display:grid;grid-template-columns:130px 1fr 52px;gap:10px;align-items:center;margin:8px 0;font-size:13.5px}
+input[type=range]{padding:0;accent-color:var(--accent);border:0;background:transparent;height:20px}
+.skeleton{height:14px;border-radius:var(--r-sm);background:linear-gradient(90deg,var(--panel2) 25%,var(--line) 50%,var(--panel2) 75%);background-size:200% 100%;animation:sk 1.1s infinite linear}
+@keyframes sk{to{background-position:-200% 0}}
+details.break{border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 12px;margin:6px 0;background:var(--panel)}
+details.break summary{cursor:pointer;font-weight:500;font-size:13.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;list-style:none}
+details.break summary::-webkit-details-marker{display:none}
+.mv{font-weight:600}.mv.up{color:var(--ok)}.mv.down{color:var(--bad)}.mv.same{color:var(--muted)}
+.metric{padding:12px 14px}.metric b{display:block;font-size:22px;font-weight:600}
+.fairrow{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 11px;margin:5px 0;font-size:13.5px}
+.fairrow .i{width:15px;height:15px}
+.fairrow.yes svg{color:var(--ok)}.fairrow.no svg{color:var(--faint)}
+.split2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pgtable{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:start}
+.profile-rail{display:grid;gap:14px}
+.pipeline{display:flex;flex-direction:column;gap:0}
+.pipeline a{display:flex;justify-content:space-between;align-items:center;padding:8px 2px;border-bottom:1px solid var(--line);color:var(--text);font-size:13.5px}
+.pipeline a:last-child{border-bottom:0}
+.pipeline a:hover{background:var(--panel2);text-decoration:none;margin:0 -8px;padding-left:10px;padding-right:10px}
+.pipeline b{font-variant-numeric:tabular-nums;font-weight:600}
+.greet{margin-bottom:4px}
+@media(max-width:960px){
+.pgtable{grid-template-columns:1fr}
+.login-wrap{grid-template-columns:1fr}
+.login-brand{display:none}
+}
+@media(max-width:860px){
+.split2{grid-template-columns:1fr}
+.shell{grid-template-columns:1fr}
+.side{position:fixed;z-index:40;width:250px;transform:translateX(-100%);transition:transform .18s;box-shadow:none}
+.side.open{transform:none;box-shadow:var(--shadow2)}
+.menu-btn{display:inline-flex}
+.topsearch{display:none}
+.rt thead{display:none}
+.rt tr{display:block;border:1px solid var(--line);border-radius:var(--r-md);margin-bottom:10px;padding:6px}
+.rt td{display:flex;justify-content:space-between;gap:10px;border:0;padding:5px 6px}
+.rt td::before{content:attr(data-l);color:var(--muted);font-size:12px}
+.rt tr.detail td::before{content:none}
+.bar{grid-template-columns:90px 1fr 40px}
+}
+@media print{
+@page{size:A4;margin:16mm}
+body{background:#fff;color:#111}
+.side,.topbar,.noprint,.foot,#toasts,#devErr,.modal-bg{display:none!important}
+.shell{display:block}
+main{padding:0}
+.tablewrap{border:0}
+.tablewrap thead th{background:#fff;box-shadow:none;color:#333}
+.report{border:0;padding:0;max-width:none;background:#fff;color:#111;box-shadow:none;border-radius:0}
+.report h1{font-size:18pt}
+.report h2{color:#333;border-color:#999}
+.report .muted{color:#444}
+.track{border:1px solid #888;background:#fff}.track i{background:#333}
+.chip,.badge{color:#000!important;border-color:#666!important;background:none!important}
+.minibar{display:none}
+.ring{background:conic-gradient(#333 calc(var(--p)*1%),#ccc 0)}
+.ring b{background:#fff}
+.pagebreak{page-break-before:always}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Rendered as plain HTML so the login screen is visible even if JavaScript fails. -->
+  <div class="login-wrap" id="loginScreen">
+    <div class="login-brand">
+      <div class="logo"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="width:24px;height:24px;color:var(--accent)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M8 11l2 2 4-4"/></svg><span>HireLens <b>AI</b></span></div>
+      <h1>Intelligent candidate screening for modern recruiting teams.</h1>
+      <p class="lede">Screen resumes, rank candidates and document hiring decisions with transparent, explainable scoring.</p>
+      <ul class="featlist">
+        <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4 10-10"/></svg><div>Explainable candidate matching<span class="small">Every score shows the skills, experience and evidence behind it.</span></div></li>
+        <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4 10-10"/></svg><div>Structured screening<span class="small">Consistent criteria applied to every candidate, on every role.</span></div></li>
+        <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4 10-10"/></svg><div>Evidence-backed insights<span class="small">Screening summaries cite the actual resume content.</span></div></li>
+      </ul>
+    </div>
+    <div class="login-card">
+      <form id="loginForm" novalidate>
+        <h2 style="margin-bottom:4px">Sign in to HireLens</h2>
+        <p class="muted small" style="margin-bottom:18px">Enter your credentials to access your workspace.</p>
+        <label for="email">Email</label>
+        <input id="email" type="email" value="demo@hirelens.ai" autocomplete="username">
+        <label for="password">Password</label>
+        <input id="password" type="password" value="password" autocomplete="current-password">
+        <p class="form-err" id="loginErr" role="alert"></p>
+        <button type="submit" class="btn primary block">Sign In</button>
+        <button type="button" class="btn block" id="demoBtn">Continue with Demo Account</button>
+        <p class="hint">Demo credentials: demo@hirelens.ai / password. Browser-only prototype — no server and no real authentication.</p>
+      </form>
+    </div>
+</div>
+<div id="toasts" aria-live="polite"></div>
+<div id="devErr" hidden role="alert"><b>Developer error:</b> <span id="devErrMsg"></span>
+  <button type="button" onclick="try{localStorage.removeItem('hirelens_demo_v2')}catch(e){}location.reload()">Reset Application Data</button></div>
+<noscript><p style="position:fixed;bottom:0;left:0;right:0;background:#3a0f18;color:#fff;padding:8px 16px;margin:0">JavaScript is disabled. Enable it to use HireLens AI.</p></noscript>
+
+<script>
+/* Error surface. Kept in its own script block so it still runs if the app script has a syntax error. */
+function showDevError(msg){var b=document.getElementById('devErr'),m=document.getElementById('devErrMsg');if(!b||!m)return;m.textContent=String(msg);b.hidden=false;}
+window.onerror=function(message,src,line,col){showDevError(message+(line?' (line '+line+(col?':'+col:'')+')':''));return false;};
+window.onunhandledrejection=function(e){showDevError('Unhandled promise rejection: '+((e.reason&&e.reason.message)||e.reason));};
+window.addEventListener('unhandledrejection',function(e){showDevError('Unhandled promise rejection: '+((e.reason&&e.reason.message)||e.reason));});
+</script>
+
+<script>
+(function () {
+'use strict';
+
+/* ======================= constants ======================= */
+var KEY = 'hirelens_demo_v2', TESTKEY = 'hirelens_selftest_tmp';
+var STATUSES = ['New', 'Under Review', 'Shortlisted', 'Rejected', 'Interview', 'Hired'];
+var SCOLOR = { 'New': '#667085', 'Under Review': '#B7791F', 'Shortlisted': '#16805C', 'Rejected': '#C2414A', 'Interview': '#3157D5', 'Hired': '#5B4FBE' };
+var WEIGHTS = { skills: 0.35, experience: 0.20, semantic: 0.25, education: 0.10, projects: 0.10 };
+var DEMO_EMAIL = 'demo@hirelens.ai', DEMO_PASS = 'password';
+var PAGES = ['dashboard', 'jobs', 'candidates', 'screening', 'ranking', 'simulator', 'compare', 'interview', 'reports', 'analytics', 'evaluation', 'fairness', 'audit', 'settings'];
+var NAVLABEL = { screening: 'Screening', ranking: 'Ranking', simulator: 'Ranking Simulator', compare: 'Compare', interview: 'AI Interview', evaluation: 'AI Evaluation', fairness: 'Fairness', audit: 'Audit Logs' };
+var GROUPS = [['Workspace', ['dashboard', 'jobs', 'candidates', 'screening']], ['Decisions', ['ranking', 'compare', 'simulator']], ['Intelligence', ['interview', 'reports', 'analytics', 'evaluation']], ['Governance', ['fairness', 'audit']], ['System', ['settings']]];
+var ICONS = {
+  dashboard: 'M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z',
+  jobs: 'M3 7h18v13H3zM9 7V4h6v3',
+  candidates: 'M16 8a4 4 0 1 0-8 0 4 4 0 0 0 8 0M4 21a8 8 0 0 1 16 0',
+  shortlisted: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z',
+  reports: 'M6 3h9l4 4v14H6zM9 12h7M9 16h7',
+  analytics: 'M4 20V10M10 20V4M16 20v-8M22 20H2',
+  settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v3M12 19v3M2 12h3M19 12h3',
+  menu: 'M4 6h16M4 12h16M4 18h16',
+  screening: 'M4 5h16M4 12h16M4 19h10M16 15l2 2 4-4',
+  ranking: 'M5 20v-8M12 20V5M19 20v-5M3 20h18',
+  simulator: 'M4 8h9M17 8h3M14 5v6M4 16h3M11 16h9M7 13v6',
+  compare: 'M8 3v18M16 3v18M3 8h4M3 16h4M17 8h4M17 16h4',
+  interview: 'M4 5h16v10H8l-4 4zM8 9h8',
+  evaluation: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v3M12 19v3M2 12h3M19 12h3',
+  fairness: 'M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6zM9 12l2 2 4-4',
+  audit: 'M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01',
+  check: 'M5 13l4 4 10-10',
+  xmark: 'M6 6l12 12M18 6L6 18',
+  minus: 'M5 12h14',
+  plus: 'M12 5v14M5 12h14',
+  bell: 'M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 20a2 2 0 0 0 4 0',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19'
+};
+var ALIASES = {
+  'js': 'JavaScript', 'javascript': 'JavaScript', 'ecmascript': 'JavaScript',
+  'ts': 'TypeScript', 'typescript': 'TypeScript',
+  'reactjs': 'React', 'react.js': 'React', 'react': 'React',
+  'node': 'Node.js', 'nodejs': 'Node.js', 'node.js': 'Node.js',
+  'mongo db': 'MongoDB', 'mongo': 'MongoDB', 'mongodb': 'MongoDB',
+  'express js': 'Express.js', 'expressjs': 'Express.js', 'express': 'Express.js', 'express.js': 'Express.js',
+  'rest': 'REST API', 'rest api': 'REST API', 'rest apis': 'REST API', 'restful api': 'REST API',
+  'postgres': 'PostgreSQL', 'postgresql': 'PostgreSQL',
+  'aws': 'AWS', 'docker': 'Docker', 'git': 'Git', 'sql': 'SQL', 'python': 'Python',
+  'html': 'HTML', 'html5': 'HTML', 'css': 'CSS', 'css3': 'CSS',
+  'tailwind': 'Tailwind CSS', 'tailwind css': 'Tailwind CSS', 'redux': 'Redux', 'jquery': 'jQuery',
+  'java': 'Java', 'excel': 'Excel', 'tableau': 'Tableau', 'power bi': 'Power BI', 'powerbi': 'Power BI',
+  'pandas': 'Pandas', 'statistics': 'Statistics', 'redis': 'Redis', 'graphql': 'GraphQL', 'jest': 'Jest'
+};
+var STOP = {};
+('a an and are as at be but by for from has have i in is it its of on or our that the their this to we will with you your using use work working strong experience years year ability etc via within across into over such also more than must should can able').split(' ').forEach(function (w) { STOP[w] = 1; });
+
+/* ======================= helpers ======================= */
+function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function $(s, r) { return (r || document).querySelector(s); }
+function fmtDate(d) { var x = new Date(d); return isNaN(x) ? '' : x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+function daysAgo(n) { return new Date(Date.now() - n * 864e5).toISOString(); }
+function icon(n) { return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONS[n] + '"/></svg>'; }
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function maxOf(a, f) { var m = 1; a.forEach(function (x) { var v = f(x); if (v > m) m = v; }); return m; }
+
+/* ======================= skills ======================= */
+function normalizeSkill(s) {
+  var t = String(s == null ? '' : s).trim().replace(/\s+/g, ' ');
+  if (!t) return '';
+  return ALIASES[t.toLowerCase()] || t;
+}
+function normalizeSkills(list) {
+  var seen = {}, out = [];
+  (list || []).forEach(function (s) {
+    var n = normalizeSkill(s), k = n.toLowerCase();
+    if (n && !seen[k]) { seen[k] = 1; out.push(n); }
+  });
+  return out;
+}
+function splitSkills(text) { return normalizeSkills(String(text || '').split(/[,\n]/)); }
+
+/* ======================= text similarity (browser demo) ======================= */
+function tokenize(text) {
+  return String(text || '').toLowerCase().replace(/[^a-z0-9+#.\s]/g, ' ').split(/\s+/)
+    .map(function (w) { return w.replace(/^\.+|\.+$/g, ''); })
+    .filter(function (w) { return w.length > 1 && !STOP[w]; });
+}
+function termFreq(tokens) { var m = {}; tokens.forEach(function (t) { m[t] = (m[t] || 0) + 1; }); return m; }
+function cosine(a, b) {
+  var A = termFreq(a), B = termFreq(b), dot = 0, x = 0, y = 0, k;
+  for (k in A) { x += A[k] * A[k]; if (B[k]) dot += A[k] * B[k]; }
+  for (k in B) y += B[k] * B[k];
+  return x && y ? dot / Math.sqrt(x * y) : 0;
+}
+function jaccard(a, b) {
+  var A = {}, B = {}, i = 0, inter = 0, k, union = 0;
+  a.forEach(function (t) { A[t] = 1; }); b.forEach(function (t) { B[t] = 1; });
+  for (k in A) { union++; if (B[k]) inter++; }
+  for (k in B) if (!A[k]) union++;
+  return union ? inter / union : 0;
+}
+
+/* ======================= scoring engine ======================= */
+function eduLevel(text) {
+  var t = String(text || '');
+  if (/ph\.?\s?d|doctor/i.test(t)) return 5;
+  if (/m\.?\s?tech|m\.?\s?sc|master|mba|mca/i.test(t)) return 4;
+  if (/b\.?\s?tech|b\.?\s?e\b|b\.?\s?sc|bca|bachelor/i.test(t)) return 3;
+  if (/diploma/i.test(t)) return 2;
+  return 0;
+}
+var EDU_LABEL = { 0: 'Not detected', 2: 'Diploma', 3: "Bachelor's", 4: "Master's", 5: 'Doctorate' };
+function totalYears(c) { return (c.experience || []).reduce(function (s, e) { return s + (Number(e.years) || 0); }, 0); }
+
+function scoreCandidate(c, j, w) {
+  var W = w || currentWeights();
+  var req = normalizeSkills(j.req), pref = normalizeSkills(j.pref);
+  var have = {};
+  normalizeSkills(c.skills).forEach(function (s) { have[s.toLowerCase()] = 1; });
+  var matched = req.filter(function (s) { return have[s.toLowerCase()]; });
+  var missing = req.filter(function (s) { return !have[s.toLowerCase()]; });
+  var mPref = pref.filter(function (s) { return have[s.toLowerCase()]; });
+  var xPref = pref.filter(function (s) { return !have[s.toLowerCase()]; });
+  /* Partial signals: required/preferred skills that are not listed as skills but appear
+     in the candidate's experience or project details (deterministic substring check). */
+  var profileText = ((c.experience || []).map(function (e) { return e.role + ' ' + e.summary; }).join(' ') + ' ' + (c.projects || []).map(function (p) { return p.name + ' ' + p.desc + ' ' + (p.tech || []).join(' '); }).join(' ')).toLowerCase();
+  var partial = req.concat(pref).filter(function (s) { var l = s.toLowerCase(); return !have[l] && l.length > 2 && profileText.indexOf(l) >= 0; });
+
+  var skills = Math.round(Math.min(100, (req.length ? matched.length / req.length * 90 : 90) + (pref.length ? mPref.length / pref.length * 10 : 0)));
+
+  var years = totalYears(c), need = Number(j.exp) || 0, experience;
+  if (need > 0) experience = years >= need ? Math.min(100, 85 + (years - need) * 7.5) : years / need * 85;
+  else experience = Math.min(100, years / 3 * 100);
+  experience = Math.round(experience);
+
+  var candText = [normalizeSkills(c.skills).join(' ')]
+    .concat((c.projects || []).map(function (p) { return p.name + ' ' + p.desc + ' ' + (p.tech || []).join(' '); }))
+    .concat((c.experience || []).map(function (e) { return e.role + ' ' + e.summary; })).join(' ');
+  var jobText = [j.title, j.desc, req.join(' '), pref.join(' ')].join(' ');
+  var ct = tokenize(candText), jt = tokenize(jobText);
+  var semantic = Math.round(Math.min(100, (0.7 * cosine(ct, jt) + 0.3 * jaccard(ct, jt)) * 200));
+
+  var cLevel = 0;
+  (c.education || []).forEach(function (e) { cLevel = Math.max(cLevel, eduLevel(e)); });
+  var rLevel = eduLevel(j.edu);
+  var education = rLevel === 0 ? (cLevel ? 100 : 60) : (cLevel >= rLevel ? 100 : Math.round(cLevel / rLevel * 80));
+
+  var wanted = {}; req.concat(pref).forEach(function (s) { wanted[s.toLowerCase()] = 1; });
+  var relProjects = (c.projects || []).filter(function (p) { return normalizeSkills(p.tech).some(function (t) { return wanted[t.toLowerCase()]; }); });
+  var nProj = (c.projects || []).length, nCert = (c.certs || []).length;
+  var projects = Math.min(100, relProjects.length * 35 + (nProj - relProjects.length) * 10 + nCert * 15);
+
+  var overall = Math.round(skills * W.skills + experience * W.experience + semantic * W.semantic + education * W.education + projects * W.projects);
+
+  var strengths = [], gaps = [], evidence = [];
+  if (matched.length) strengths.push('Covers ' + matched.length + ' of ' + req.length + ' required skills: ' + matched.join(', ') + '.');
+  if (need > 0 && years >= need) strengths.push(years + ' years of experience meets the ' + need + '-year requirement.');
+  if (relProjects.length) strengths.push('Relevant project work: ' + relProjects.map(function (p) { return p.name; }).join(', ') + '.');
+  if (mPref.length) strengths.push('Also has preferred skills: ' + mPref.join(', ') + '.');
+  if (nCert) strengths.push('Certifications listed: ' + c.certs.join(', ') + '.');
+  if (rLevel && cLevel >= rLevel) strengths.push('Education level meets the requirement.');
+  if (missing.length) gaps.push('Required skills not found on the profile: ' + missing.join(', ') + '.');
+  if (need > 0 && years < need) gaps.push(years + ' year(s) of experience against ' + need + ' required.');
+  if (rLevel && cLevel < rLevel) gaps.push('Highest education found (' + EDU_LABEL[cLevel] + ') is below the required level (' + EDU_LABEL[rLevel] + ').');
+  if (xPref.length) gaps.push('Preferred skills not shown: ' + xPref.join(', ') + '.');
+  if (!strengths.length) strengths.push('No clear strengths detected against this job.');
+  if (!gaps.length) gaps.push('No gaps detected against the stated requirements.');
+  evidence.push('Skills on profile: ' + (normalizeSkills(c.skills).join(', ') || 'none listed') + '.');
+  (c.experience || []).forEach(function (e) { evidence.push(e.role + ' at ' + e.company + ' (' + e.years + ' yr): ' + e.summary); });
+  (c.projects || []).forEach(function (p) { evidence.push('Project "' + p.name + '" using ' + ((p.tech || []).join(', ') || 'unspecified technologies') + '.'); });
+
+  return {
+    overall: overall, skills: skills, experience: experience, semantic: semantic, education: education, projects: projects,
+    matched: matched.concat(mPref), missing: missing, matchedReq: matched, matchedPref: mPref, missingPref: xPref, partial: partial,
+    strengths: strengths, gaps: gaps, evidence: evidence,
+    notes: {
+      experience: years + ' year(s) on the profile against ' + (need ? need + ' required.' : 'no stated requirement.'),
+      education: 'Highest level found: ' + EDU_LABEL[cLevel] + '. Required: ' + (rLevel ? EDU_LABEL[rLevel] : 'not stated') + '.',
+      project: relProjects.length + ' of ' + nProj + ' project(s) use required or preferred technologies; ' + nCert + ' certification(s).'
+    },
+    explanation: c.name + ' scored ' + overall + '%: skills ' + skills + '% (' + Math.round(W.skills * 100) + '% weight), experience ' + experience + '% (' + Math.round(W.experience * 100) + '%), relevance ' + semantic + '% (' + Math.round(W.semantic * 100) + '%), education ' + education + '% (' + Math.round(W.education * 100) + '%), projects and certifications ' + projects + '% (' + Math.round(W.projects * 100) + '%). Scores are calculated by fixed rules from the profile and the job requirements. No personal attributes such as gender, religion, race or age are used.'
+  };
+}
+
+/* ======================= data model ======================= */
+function defaultData() {
+  function J(id, title, company, location, exp, edu, req, pref, desc, age) {
+    return { id: id, title: title, company: company, location: location, exp: exp, edu: edu, req: normalizeSkills(req), pref: normalizeSkills(pref), desc: desc, status: 'Open', created: daysAgo(age), analysis: null };
+  }
+  function P(name, desc, tech) { return { name: name, desc: desc, tech: tech }; }
+  function E(role, company, years, summary) { return { role: role, company: company, years: years, summary: summary }; }
+  function C(id, jobId, name, phone, location, skills, edu, experience, projects, certs, status, age) {
+    return { id: id, jobId: jobId, name: name, email: name.toLowerCase().replace(/\s+/g, '.') + '@example.com', phone: phone, location: location, skills: skills, education: edu, experience: experience, projects: projects, certs: certs, status: status, notes: '', created: daysAgo(age) };
+  }
+  return {
+    v: 2, user: null, nextJobId: 5, nextCandId: 9, poolUsed: [], screenings: [],
+    settings: { name: 'Demo Recruiter', email: DEMO_EMAIL, company: 'HireLens Demo Co.', notify: true, theme: 'light' },
+    log: [{ t: daysAgo(0), m: 'Demo data loaded' }],
+    jobs: [
+      J(1, 'Senior Frontend Developer', 'NorthPeak Labs', 'Bengaluru', 4, "Bachelor's", ['JavaScript', 'React', 'HTML', 'CSS', 'Git'], ['TypeScript', 'Tailwind CSS', 'Redux'],
+        "We are looking for a Senior Frontend Developer with 4+ years of experience to build responsive interfaces using JavaScript, React, HTML and CSS. You will design reusable components, review pull requests and collaborate with designers. Bachelor's degree in Computer Science or a related field. Preferred: TypeScript, Tailwind CSS and Redux.", 21),
+      J(2, 'Backend Engineer', 'Cedar Systems', 'Pune', 3, "Bachelor's", ['Node.js', 'Express.js', 'MongoDB', 'REST API', 'SQL'], ['Docker', 'AWS', 'Redis'],
+        "Design and maintain REST API services using Node.js, Express and MongoDB. Optimise SQL queries and own service reliability. 3+ years of experience required. Bachelor's degree in engineering. Nice to have: Docker, AWS and Redis.", 15),
+      J(3, 'Full Stack Developer', 'Lumen Works', 'Indore', 2, "Bachelor's", ['JavaScript', 'React', 'Node.js', 'MongoDB', 'REST API'], ['Docker', 'AWS', 'TypeScript'],
+        "Build full-stack web applications with React, Node.js and MongoDB. Develop REST API endpoints, collaborate with designers and ship features end to end. 2+ years of experience. Bachelor's degree in Computer Science. Preferred: Docker, AWS and TypeScript.", 9),
+      J(4, 'Data Analyst', 'Orbit Analytics', 'Remote', 1, "Bachelor's", ['Python', 'SQL', 'Excel', 'Pandas', 'Statistics'], ['Tableau', 'Power BI'],
+        "Analyse business data with Python, SQL, Excel and Pandas. Create dashboards and report insights to stakeholders using statistics. 1+ years of experience. Bachelor's degree in a quantitative field. Preferred: Tableau and Power BI.", 5)
+    ],
+    cands: [
+      C(1, 3, 'Aarav Sharma', '+91 90000 01001', 'Indore', ['JS', 'ReactJS', 'Node', 'Mongo DB', 'Express JS', 'REST APIs', 'Git', 'TypeScript'], ['B.Tech in Computer Science, Riverbend Institute of Technology (2021)'],
+        [E('Software Engineer', 'Brightline Apps', 3, 'Built React dashboards and Node.js REST services backed by MongoDB.')],
+        [P('Hostel Booking Platform', 'Full-stack booking app with JWT auth and payments', ['React', 'Node.js', 'MongoDB']), P('Realtime Chat App', 'Socket-based chat with rooms and a REST API', ['Node.js', 'Express.js']), P('Portfolio CMS', 'Dashboard for managing content', ['React', 'TypeScript'])],
+        ['Front-End Developer Certificate'], 'Shortlisted', 8),
+      C(2, 3, 'Priya Singh', '+91 90000 01002', 'Pune', ['JavaScript', 'React.js', 'Node.js', 'MongoDB', 'Docker', 'AWS', 'Git'], ['B.E. in Information Technology, Lakeview College of Engineering (2022)'],
+        [E('Junior Developer', 'Stackwell', 2, 'Developed React features and deployed Node.js services on AWS with Docker.')],
+        [P('Expense Tracker', 'Full-stack expense app deployed on AWS with Docker', ['React', 'Node.js', 'MongoDB', 'Docker']), P('Quiz Portal', 'Timed quiz application', ['React', 'MongoDB'])],
+        ['Cloud Practitioner Certificate'], 'Under Review', 7),
+      C(3, 3, 'Rahul Verma', '+91 90000 01003', 'Bhopal', ['JS', 'React', 'HTML', 'CSS', 'Git'], ['BCA, Summit University (2024)'],
+        [E('Intern', 'PixelForge', 1, 'Built static pages and small React components.')],
+        [P('Landing Page Kit', 'Responsive marketing pages', ['HTML', 'CSS', 'JavaScript']), P('Todo App', 'React todo application', ['React'])],
+        [], 'New', 6),
+      C(4, 1, 'Ananya Patel', '+91 90000 01004', 'Bengaluru', ['JavaScript', 'React', 'HTML', 'CSS', 'Tailwind', 'Redux', 'Git', 'TypeScript'], ['B.Tech in Information Technology, Harbor Institute (2019)'],
+        [E('Senior UI Engineer', 'Nimbus Interfaces', 5, 'Led a React component library and Redux-based dashboards.')],
+        [P('Design System', 'Reusable React component library', ['React', 'TypeScript', 'Tailwind CSS']), P('Analytics Dashboard', 'Interactive charts UI with Redux state', ['React', 'Redux'])],
+        ['UX Fundamentals Certificate'], 'Interview', 6),
+      C(5, 2, 'Vikram Mehta', '+91 90000 01005', 'Pune', ['Node.js', 'Express', 'MongoDB', 'SQL', 'REST API', 'Docker', 'Postgres'], ['M.Tech in Software Engineering, Northgate Institute (2018)'],
+        [E('Backend Engineer', 'Cobalt Payments', 4, 'Owned Node.js REST services and SQL data models for a payments platform.')],
+        [P('Payments Gateway Service', 'REST API service with Node.js and SQL', ['Node.js', 'Express.js', 'PostgreSQL']), P('Job Queue Worker', 'Background workers and monitoring', ['Node.js', 'Docker'])],
+        ['Database Associate Certificate'], 'Shortlisted', 5),
+      C(6, 1, 'Neha Kapoor', '+91 90000 01006', 'Jaipur', ['HTML', 'CSS', 'JS', 'jQuery'], ['Diploma in Computer Engineering, Metro Polytechnic (2023)'],
+        [E('Web Trainee', 'Sitecraft', 1, 'Maintained static websites with HTML, CSS and jQuery.')],
+        [P('College Website', 'Static multi-page site', ['HTML', 'CSS'])],
+        [], 'Rejected', 4),
+      C(7, 2, 'Kabir Nair', '+91 90000 01007', 'Kochi', ['Java', 'SQL', 'Spring Boot', 'REST API', 'Git'], ['B.Tech in Computer Science, Coastal Institute (2021)'],
+        [E('Software Developer', 'Harbor Soft', 2, 'Built Java REST services with SQL storage.')],
+        [P('Library Management', 'Java service with SQL storage', ['Java', 'SQL'])],
+        ['Java Foundations Certificate'], 'New', 3),
+      C(8, 4, 'Isha Rao', '+91 90000 01008', 'Hyderabad', ['Python', 'SQL', 'Excel', 'Pandas', 'Tableau', 'Statistics'], ['M.Sc in Statistics, Deccan University (2021)'],
+        [E('Data Analyst', 'Quantia', 2, 'Analysed sales data with Python, SQL and Pandas and built Tableau dashboards.')],
+        [P('Sales Forecasting', 'Time-series forecasting with Pandas', ['Python', 'Pandas']), P('Churn Dashboard', 'Tableau dashboard on SQL data', ['SQL', 'Tableau'])],
+        ['Data Analytics Certificate'], 'Under Review', 2)
+    ]
+  };
+}
+var POOL = [
+  { name: 'Dev Malhotra', phone: 'Not specified', location: 'Not specified', skills: ['JavaScript', 'React', 'Node.js', 'Express', 'MongoDB', 'REST API', 'Docker'], education: ['B.Tech in Computer Science (demo profile)'], experience: [{ role: 'Developer', company: 'Demo Company', years: 2, summary: 'Sample profile: MERN application development.' }], projects: [{ name: 'Inventory Manager', desc: 'MERN inventory system', tech: ['React', 'Node.js', 'MongoDB'] }], certs: [] },
+  { name: 'Sana Iyer', phone: 'Not specified', location: 'Not specified', skills: ['Python', 'SQL', 'Pandas', 'Power BI', 'Excel'], education: ['B.Sc in Mathematics (demo profile)'], experience: [{ role: 'Analyst', company: 'Demo Company', years: 1, summary: 'Sample profile: reporting with SQL and Power BI.' }], projects: [{ name: 'Retail KPI Report', desc: 'Power BI report on SQL data', tech: ['SQL', 'Power BI'] }], certs: [] },
+  { name: 'Yash Bhatt', phone: 'Not specified', location: 'Not specified', skills: ['React', 'TypeScript', 'CSS', 'HTML', 'Redux', 'JavaScript', 'Git'], education: ['B.Tech in Information Technology (demo profile)'], experience: [{ role: 'Frontend Developer', company: 'Demo Company', years: 4, summary: 'Sample profile: React and Redux interfaces.' }], projects: [{ name: 'Kanban Board', desc: 'Drag-and-drop board with Redux', tech: ['React', 'Redux'] }], certs: ['Frontend Course Certificate'] }
+];
+
+function isArr(x) { return Array.isArray(x); }
+function validateDB(d) {
+  try {
+    if (!d || typeof d !== 'object' || !isArr(d.jobs) || !isArr(d.cands) || !isArr(d.log) || !d.settings || typeof d.settings !== 'object') return false;
+    var ids = {};
+    for (var i = 0; i < d.jobs.length; i++) {
+      var j = d.jobs[i];
+      if (!j || typeof j.id !== 'number' || typeof j.title !== 'string' || !isArr(j.req) || !isArr(j.pref) || typeof j.desc !== 'string') return false;
+      ids[j.id] = 1;
+    }
+    for (var k = 0; k < d.cands.length; k++) {
+      var c = d.cands[k];
+      if (!c || typeof c.id !== 'number' || typeof c.name !== 'string' || !isArr(c.skills) || !isArr(c.education) || !isArr(c.experience) || !isArr(c.projects) || !isArr(c.certs) || STATUSES.indexOf(c.status) < 0 || !ids[c.jobId]) return false;
+    }
+    return typeof d.nextJobId === 'number' && typeof d.nextCandId === 'number' && isArr(d.poolUsed);
+  } catch (e) { return false; }
+}
+function parseStored(text) {
+  try { var d = JSON.parse(text); return validateDB(d) ? d : null; } catch (e) { return null; }
+}
+function loadDB() {
+  var raw = null;
+  try { raw = localStorage.getItem(KEY); } catch (e) { raw = null; }
+  var d = raw ? parseStored(raw) : null;
+  if (!d) { d = defaultData(); if (raw) { pendingNotice = 'Saved data was invalid and has been reset to the demo data.'; } }
+  if (!isArr(d.screenings)) d.screenings = [];
+  if (d.settings.theme !== 'light' && d.settings.theme !== 'dark') d.settings.theme = 'light';
+  return d;
+}
+var storageOk = true;
+function saveDB() {
+  try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { if (storageOk) { storageOk = false; toast('Browser storage is unavailable. Changes will not persist after refresh.', true); } }
+}
+
+/* ======================= domain logic (pure where possible) ======================= */
+function authenticate(email, pass) { return String(email || '').trim().toLowerCase() === DEMO_EMAIL && pass === DEMO_PASS; }
+function parseRoute(hash) {
+  var parts = String(hash || '').replace(/^#\/?/, '').split('/').filter(Boolean);
+  var page = parts[0] || 'dashboard';
+  if (PAGES.indexOf(page) < 0 && page !== 'shortlisted') return { page: 'notfound' };
+  return { page: page, id: parts[1] || null, sub: parts[2] || null };
+}
+function findJob(d, id) { for (var i = 0; i < d.jobs.length; i++) if (String(d.jobs[i].id) === String(id)) return d.jobs[i]; return null; }
+function findCand(d, id) { for (var i = 0; i < d.cands.length; i++) if (String(d.cands[i].id) === String(id)) return d.cands[i]; return null; }
+function scoredAll(d, w) {
+  var rows = [];
+  d.cands.forEach(function (c) { var j = findJob(d, c.jobId); if (j) rows.push({ c: c, j: j, s: scoreCandidate(c, j, w), rank: 0 }); });
+  var byJob = {};
+  rows.forEach(function (r) { (byJob[r.j.id] = byJob[r.j.id] || []).push(r); });
+  Object.keys(byJob).forEach(function (k) {
+    byJob[k].sort(function (a, b) { return b.s.overall - a.s.overall || a.c.name.localeCompare(b.c.name); });
+    byJob[k].forEach(function (r, i) { r.rank = i + 1; });
+  });
+  return rows;
+}
+function rankForJob(d, jobId, w) {
+  return scoredAll(d, w).filter(function (r) { return String(r.j.id) === String(jobId); }).sort(function (a, b) { return a.rank - b.rank; });
+}
+function filterCandidates(d, f, w) {
+  var q = String(f.q || '').trim().toLowerCase(), nq = normalizeSkill(q).toLowerCase();
+  var rows = scoredAll(d, w).filter(function (r) {
+    if (f.jobId && String(r.j.id) !== String(f.jobId)) return false;
+    if (f.status && r.c.status !== f.status) return false;
+    if (r.s.overall < (Number(f.min) || 0)) return false;
+    if (q) {
+      var hay = r.c.name.toLowerCase() + ' ' + r.c.email.toLowerCase();
+      var skillHit = r.c.skills.some(function (s) { var a = String(s).toLowerCase(), n = normalizeSkill(s).toLowerCase(); return a.indexOf(q) >= 0 || n.indexOf(q) >= 0 || n.indexOf(nq) >= 0; });
+      if (hay.indexOf(q) < 0 && !skillHit) return false;
+    }
+    return true;
+  });
+  var sort = f.sort || 'high';
+  rows.sort(function (a, b) {
+    if (sort === 'low') return a.s.overall - b.s.overall;
+    if (sort === 'new') return new Date(b.c.created) - new Date(a.c.created);
+    return b.s.overall - a.s.overall || a.c.name.localeCompare(b.c.name);
+  });
+  return rows;
+}
+function setStatus(d, id, status) {
+  var c = findCand(d, id);
+  if (!c || STATUSES.indexOf(status) < 0) return false;
+  c.status = status;
+  d.log.unshift({ t: new Date().toISOString(), m: c.name + ' marked ' + status });
+  d.log = d.log.slice(0, 25);
+  return true;
+}
+function countStatus(d, s) { return d.cands.filter(function (c) { return c.status === s; }).length; }
+function buildReport(d, id) {
+  var c = findCand(d, id), j = c && findJob(d, c.jobId);
+  if (!c || !j) return null;
+  return { cand: c, job: j, s: scoreCandidate(c, j), date: new Date().toISOString(), status: c.status, notes: c.notes || '' };
+}
+function analyzeJob(job) {
+  var text = job.desc || '';
+  function rx(k) { return new RegExp('(^|[^a-z0-9])' + k.replace(/[.+*?^${}()|[\]\\]/g, '\\$&') + '($|[^a-z0-9])', 'i'); }
+  function find(t) { var out = {}; Object.keys(ALIASES).forEach(function (k) { if (rx(k).test(t)) out[ALIASES[k]] = 1; }); return Object.keys(out); }
+  var i = text.search(/preferred|nice to have|bonus|plus:/i);
+  var reqPart = i > 0 ? text.slice(0, i) : text, prefPart = i > 0 ? text.slice(i) : '';
+  var req = find(reqPart), pref = find(prefPart).filter(function (s) { return req.indexOf(s) < 0; });
+  var m = text.match(/(\d+)\+?\s*(?:-\s*\d+\s*)?years?/i), e = text.match(/(b\.?tech|bachelor'?s?|master'?s?|m\.?tech|ph\.?d|diploma)[^.,;\n]*/i);
+  var resp = text.split(/(?<=[.!?])\s+|\n/).filter(function (s) { return /build|develop|design|maintain|collaborat|analy|own|implement|create|ship|review|optimi/i.test(s); }).slice(0, 5).map(function (s) { return s.trim(); });
+  return { req: req, pref: pref, exp: m ? m[0] : 'Not specified', expYears: m ? Number(m[1]) : 0, edu: e ? e[0].trim() : 'Not specified', resp: resp, at: new Date().toISOString() };
+}
+function makeQuestions(c, j, s) {
+  var base = s.matched.length ? s.matched : normalizeSkills(j.req);
+  var T = [
+    function (x) { return 'Describe a real problem you solved with ' + x + ' and the trade-offs you made.'; },
+    function (x) { return 'How do you test and debug code that relies on ' + x + '?'; },
+    function (x) { return 'What are common mistakes when using ' + x + ', and how do you avoid them?'; },
+    function (x) { return 'How would you review a teammate\'s pull request that involves ' + x + '?'; },
+    function (x) { return 'How would you improve the performance or reliability of a system built with ' + x + '?'; }
+  ];
+  var tech = [], i;
+  for (i = 0; i < 5; i++) tech.push(T[i % 5](base[i % Math.max(1, base.length)] || 'your main technology'));
+  if (s.missing.length) tech[4] = 'Your profile does not list ' + s.missing[0] + ', which this role requires. How would you become productive with it in your first month?';
+  var proj = (c.projects || []).slice(0, 2).map(function (p) { return 'Walk me through "' + p.name + '": why did you choose ' + ((p.tech && p.tech[0]) || 'that approach') + ', and what would you change now?'; });
+  while (proj.length < 2) proj.push('Which part of your recent work best shows your fit for the ' + j.title + ' role, and why?');
+  return {
+    technical: tech,
+    behavioral: ['Tell me about a time you disagreed with a teammate on a technical decision.', 'Describe a deadline you nearly missed and what you did about it.', 'How do you learn a new technology quickly?'],
+    project: proj
+  };
+}
+
+/* ======================= backend-ready API layer ======================= */
+function delay(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+var API = {
+  login: async function (email, password) { await delay(300); return authenticate(email, password) ? { email: DEMO_EMAIL } : null; },
+  getJobs: async function () { await delay(150); return db.jobs.slice(); },
+  createJob: async function (data) { await delay(300); data.id = db.nextJobId++; data.status = 'Open'; data.created = new Date().toISOString(); data.analysis = null; db.jobs.push(data); saveDB(); return data; },
+  getCandidates: async function (f) { await delay(150); return filterCandidates(db, f || filters); },
+  screenCandidate: async function (cid, jid) {
+    await delay(600);
+    var c = findCand(db, cid), j = findJob(db, jid || (c && c.jobId));
+    if (!c || !j) return null;
+    var s = scoreCandidate(c, j);
+    db.screenings.unshift({ t: new Date().toISOString(), candId: c.id, jobId: j.id, overall: s.overall });
+    db.screenings = db.screenings.slice(0, 50);
+    logEvent('Screening completed: ' + c.name + ' — ' + s.overall + '% for ' + j.title);
+    saveDB();
+    return { cand: c, job: j, score: s };
+  },
+  getRanking: async function (jobId, w) { await delay(150); return rankForJob(db, jobId, w); },
+  compareCandidates: async function (ids) { await delay(200); return ids.map(function (id) { var c = findCand(db, id), j = c && findJob(db, c.jobId); return c && j ? { cand: c, job: j, score: scoreCandidate(c, j) } : null; }).filter(Boolean); },
+  generateInterviewQuestions: async function (cid) {
+    await delay(500);
+    var c = findCand(db, cid), j = c && findJob(db, c.jobId);
+    if (!c || !j) return null;
+    return makeQuestions(c, j, scoreCandidate(c, j));
+  },
+  generateReport: async function (cid) { await delay(300); return buildReport(db, cid); },
+  getAnalytics: async function () { await delay(150); return stats(db); },
+  getAuditLogs: async function () { await delay(100); return db.log.slice(); }
+};
+
+/* ======================= state ======================= */
+var db, pendingNotice = '', sel = [], upload = null, LOGIN_HTML = '', appEl, filters = { q: '', jobId: '', status: '', min: 0, sort: 'high' };
+var simWeights = null;
+function currentWeights() {
+  try {
+    var w = db && db.settings && db.settings.weights;
+    if (w && Math.abs(w.skills + w.experience + w.semantic + w.education + w.projects - 1) < 0.01) return w;
+  } catch (e) { }
+  return WEIGHTS;
+}
+function toast(msg, isErr) {
+  var box = $('#toasts'); if (!box) return;
+  var t = document.createElement('div'); t.className = 'toast' + (isErr ? ' err' : ''); t.textContent = msg; box.appendChild(t);
+  setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
+}
+function logEvent(m) { db.log.unshift({ t: new Date().toISOString(), m: m }); db.log = db.log.slice(0, 25); }
+
+/* ======================= view helpers ======================= */
+function badge(s) { return '<span class="badge" style="--c:' + SCOLOR[s] + '">' + esc(s) + '</span>'; }
+function scoreCell(v) { var cls = v >= 80 ? 'good' : v >= 60 ? 'warn' : 'bad'; return '<div class="scorecell"><b>' + v + '%</b><span class="minibar" aria-hidden="true"><i class="' + cls + '" style="width:' + v + '%"></i></span></div>'; }
+function skillGroup(title, list, ic, cls) {
+  return '<h3 style="margin-bottom:4px">' + title + '</h3>' + (list && list.length ? list.map(function (x) { return '<div class="fairrow ' + cls + '"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONS[ic] + '"/></svg> ' + esc(x) + '</div>'; }).join('') : '<p class="muted small">None</p>');
+}
+function scoreWord(v) { return v >= 85 ? 'Excellent match' : v >= 70 ? 'Strong match' : v >= 55 ? 'Moderate match' : 'Below requirements'; }
+function def(k, v) { return '<div class="defrow"><dt>' + k + '</dt><dd style="margin:0">' + v + '</dd></div>'; }
+function chips(list, cls) {
+  if (!list || !list.length) return '<span class="muted">None</span>';
+  return list.map(function (x) { return '<span class="chip ' + (cls || '') + '">' + (cls === 'y' ? '✓ ' : cls === 'n' ? '✕ ' : '') + esc(x) + '</span>'; }).join('');
+}
+function ul(list) { return list && list.length ? '<ul class="plain">' + list.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '<p class="muted">None</p>'; }
+function meter(label, v) { return '<div class="bar"><span>' + label + '</span><div class="track"><i style="width:' + v + '%"></i></div><b>' + v + '%</b></div>'; }
+function ring(v) { return '<div class="ring" style="--p:' + v + '" role="img" aria-label="Overall match ' + v + ' percent"><b>' + v + '%</b></div>'; }
+function hbars(entries) {
+  if (!entries.length) return '<p class="muted">No data yet.</p>';
+  var max = maxOf(entries, function (e) { return e[1]; });
+  return entries.map(function (e) { return '<div class="bar"><span title="' + esc(e[0]) + '">' + esc(e[0]) + '</span><div class="track"><i style="width:' + (e[1] / max * 100) + '%"></i></div><b>' + e[1] + '</b></div>'; }).join('');
+}
+function columns(entries) {
+  var max = maxOf(entries, function (e) { return e[1]; }), bw = 36, gap = (300 - entries.length * bw) / (entries.length + 1), out = '';
+  entries.forEach(function (e, i) {
+    var bh = e[1] / max * 90, x = gap + i * (bw + gap), y = 108 - bh;
+    out += '<rect class="col" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw + '" height="' + Math.max(bh, 1).toFixed(1) + '" rx="4"/><text class="cv" x="' + (x + bw / 2).toFixed(1) + '" y="' + (y - 5).toFixed(1) + '">' + e[1] + '</text><text class="cl" x="' + (x + bw / 2).toFixed(1) + '" y="126">' + esc(e[0]) + '</text>';
+  });
+  return '<svg class="cols" viewBox="0 0 300 134" role="img" aria-label="Score distribution chart">' + out + '</svg>';
+}
+function donut(entries) {
+  var total = entries.reduce(function (a, e) { return a + e[1]; }, 0);
+  if (!total) return '<p class="muted">No data yet.</p>';
+  var r = 42, C = 2 * Math.PI * r, off = 0, segs = '';
+  entries.forEach(function (e) {
+    if (!e[1]) return;
+    var len = e[1] / total * C;
+    segs += '<circle cx="60" cy="60" r="' + r + '" fill="none" stroke="' + SCOLOR[e[0]] + '" stroke-width="16" stroke-dasharray="' + len.toFixed(2) + ' ' + (C - len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" transform="rotate(-90 60 60)"/>';
+    off += len;
+  });
+  return '<div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="Candidates by status">' + segs + '<text class="dn" x="60" y="67" text-anchor="middle">' + total + '</text></svg><ul class="legend">' +
+    entries.map(function (e) { return '<li><i style="background:' + SCOLOR[e[0]] + '"></i>' + esc(e[0]) + ' <b>' + e[1] + '</b></li>'; }).join('') + '</ul></div>';
+}
+function topCounts(list) {
+  var m = {}; list.forEach(function (x) { m[x] = (m[x] || 0) + 1; });
+  return Object.keys(m).map(function (k) { return [k, m[k]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 8);
+}
+function distBuckets(rows) {
+  var d = [['0-40', 0], ['41-60', 0], ['61-75', 0], ['76-90', 0], ['91-100', 0]];
+  rows.forEach(function (r) { var o = r.s.overall; d[o <= 40 ? 0 : o <= 60 ? 1 : o <= 75 ? 2 : o <= 90 ? 3 : 4][1]++; });
+  return d;
+}
+function stats(d) {
+  var rows = scoredAll(d), n = d.cands.length;
+  return {
+    rows: rows, total: n, jobs: d.jobs.length, short: countStatus(d, 'Shortlisted'), review: countStatus(d, 'Under Review'), rejected: countStatus(d, 'Rejected'),
+    avg: rows.length ? Math.round(rows.reduce(function (a, r) { return a + r.s.overall; }, 0) / rows.length) : 0
+  };
+}
+function head(title, sub, actions) { return '<div class="head"><div><h1>' + title + '</h1><p class="muted">' + sub + '</p></div><div class="row noprint">' + (actions || '') + '</div></div>'; }
+
+/* ======================= views ======================= */
+function viewDashboard() {
+  var st = stats(db);
+  var nowH = new Date().getHours();
+  var greet = nowH < 12 ? 'Good morning' : nowH < 18 ? 'Good afternoon' : 'Good evening';
+  var screened = (db.screenings || []).length || db.cands.filter(function (c) { return c.status !== 'New'; }).length;
+  var cards = [['Open Roles', db.jobs.filter(function (j) { return j.status === 'Open'; }).length], ['Candidates', st.total], ['Screened', screened], ['Shortlisted', st.short], ['Average Match', st.avg + '%']];
+  var pipeline = STATUSES.map(function (s) { return '<a href="#/candidates"><span>' + s + '</span><b>' + countStatus(db, s) + '</b></a>'; }).join('');
+  var recent = st.rows.slice().sort(function (a, b) { return new Date(b.c.created) - new Date(a.c.created); }).slice(0, 6);
+  return head(greet + ', ' + esc((db.settings.name || 'Recruiter').split(' ')[0]), 'Recruitment overview for your active roles') +
+    '<div class="grid g5" style="margin-bottom:14px">' + cards.map(function (c) { return '<div class="card stat kpi"><b>' + c[1] + '</b><span>' + c[0] + '</span></div>'; }).join('') + '</div>' +
+    '<div class="pgtable"><div><div class="card" style="margin-bottom:14px"><h2>Candidate Pipeline</h2><div class="pipeline">' + pipeline + '</div></div>' +
+    '<div class="card"><h2>Recent Candidates</h2>' + (recent.length ? '<div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Candidate</th><th>Position</th><th>Match</th><th>Status</th><th>Added</th></tr></thead><tbody>' +
+      recent.map(function (r) { return '<tr><td data-l="Candidate"><a href="#/candidates/' + r.c.id + '"><b>' + esc(r.c.name) + '</b></a></td><td data-l="Position">' + esc(r.j.title) + '</td><td data-l="Match">' + scoreCell(r.s.overall) + '</td><td data-l="Status">' + badge(r.c.status) + '</td><td data-l="Added">' + fmtDate(r.c.created) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="empty">No candidates yet. <a href="#/candidates">Add candidates</a> to see them here.</div>') + '</div></div>' +
+    '<div class="profile-rail"><div class="card"><h2>Score Distribution</h2>' + columns(distBuckets(st.rows)) + '</div>' +
+    '<div class="card"><h2>Recent Activity</h2>' + (db.log.length ? db.log.slice(0, 6).map(function (l) { return '<div class="row between" style="padding:5px 0;border-bottom:1px solid var(--line)"><span>' + esc(l.m) + '</span><span class="muted small">' + fmtDate(l.t) + '</span></div>'; }).join('') : '<p class="muted">No activity yet.</p>') + '</div></div></div>';
+}
+function viewJobs() {
+  return head('Jobs', 'Manage open positions and candidate pipelines', '<button class="btn primary" data-act="newjob">' + icon('plus') + 'Create Job</button>') +
+    (db.jobs.length ? '<div class="card" style="padding:0;overflow:hidden"><div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Job Title</th><th>Company</th><th>Location</th><th>Experience</th><th>Candidates</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody>' +
+      db.jobs.map(function (j) {
+        var n = db.cands.filter(function (c) { return c.jobId === j.id; }).length;
+        return '<tr><td data-l="Job Title"><a href="#/jobs/' + j.id + '"><b>' + esc(j.title) + '</b></a><span class="sub">' + chips(j.req.slice(0, 3)) + '</span></td><td data-l="Company">' + esc(j.company) + '</td><td data-l="Location">' + esc(j.location) + '</td><td data-l="Experience">' + (j.exp || 0) + '+ yrs</td><td data-l="Candidates">' + n + '</td><td data-l="Status"><span class="badge" style="--c:#16805C">' + esc(j.status) + '</span></td><td data-l="Created">' + fmtDate(j.created) + '</td><td data-l="Actions"><div class="row"><a class="btn sm" href="#/jobs/' + j.id + '">View</a><button class="btn sm" data-act="editjob" data-id="' + j.id + '">Edit</button><button class="btn sm" data-act="screen" data-id="' + j.id + '">Screen</button></div></td></tr>';
+      }).join('') + '</tbody></table></div></div>' : '<div class="empty">No jobs yet. Create your first job to start screening.</div>');
+}
+function viewJob(id) {
+  var j = findJob(db, id); if (!j) return viewNotFound();
+  var a = j.analysis, ranked = rankForJob(db, j.id), nC = db.cands.filter(function (c) { return c.jobId === j.id; }).length;
+  return head(esc(j.title), esc(j.company) + ' · ' + esc(j.location) + ' · Open role', '<button class="btn" data-act="editjob" data-id="' + j.id + '">Edit</button><button class="btn" data-act="analyze" data-id="' + j.id + '">Analyze Requirements</button><button class="btn primary" data-act="screen" data-id="' + j.id + '">Screen Candidates</button>') +
+    '<div class="pgtable"><div><div class="card" style="margin-bottom:14px"><h2>Job Description</h2><p>' + esc(j.desc) + '</p>' +
+    def('Experience', (j.exp || 0) + '+ years') + def('Education', esc(j.edu || 'Not specified')) + def('Location', esc(j.location)) + def('Company', esc(j.company)) +
+    '<h3 style="margin-top:12px">Required skills</h3>' + chips(j.req) + '<h3 style="margin-top:8px">Preferred skills</h3>' + chips(j.pref) + '</div>' +
+    '<div class="card" style="margin-bottom:14px"><h2>Requirement Analysis — Demo Engine</h2>' + (a ?
+      '<p class="muted small">Deterministic keyword and pattern analysis in your browser. It is not an AI model.</p><h3 style="margin-top:8px">Required skills</h3>' + chips(a.req) + '<h3>Preferred skills</h3>' + chips(a.pref) + '<p style="margin-top:8px">Experience: ' + esc(a.exp) + '<br>Education: ' + esc(a.edu) + '</p><h3>Responsibilities</h3>' + ul(a.resp) + '<button class="btn sm" style="margin-top:8px" data-act="applyreq" data-id="' + j.id + '">Use as job requirements</button>'
+      : '<p class="muted">Select "Analyze Requirements" to extract skills, experience, education and responsibilities from the job description.</p>') + '</div>' +
+    '</div><div class="profile-rail"><div class="card"><h2>At a Glance</h2>' + def('Status', '<span class="badge" style="--c:#16805C">' + esc(j.status) + '</span>') + def('Candidates', String(nC)) + def('Experience', (j.exp || 0) + '+ years') + def('Education', esc(j.edu || 'Not specified')) + def('Created', fmtDate(j.created)) + '</div>' +
+    '<div class="card"><h2>Top Ranked</h2>' + (ranked.length ? ranked.slice(0, 5).map(function (r) { return '<div class="row between" style="padding:5px 0"><a href="#/candidates/' + r.c.id + '">' + esc(r.c.name) + '</a><b>' + r.s.overall + '%</b></div>'; }).join('') : '<p class="muted">No candidates yet.</p>') + '</div></div></div>' +
+    '<div class="card" style="margin-top:14px"><h2>Ranked Candidates</h2>' + (ranked.length ? '<div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Rank</th><th>Candidate</th><th>Match</th><th>Status</th><th></th></tr></thead><tbody>' + ranked.map(function (r) { return '<tr><td data-l="Rank">#' + r.rank + '</td><td data-l="Candidate"><a href="#/candidates/' + r.c.id + '"><b>' + esc(r.c.name) + '</b></a></td><td data-l="Match">' + scoreCell(r.s.overall) + '</td><td data-l="Status">' + badge(r.c.status) + '</td><td><a class="btn sm" href="#/candidates/' + r.c.id + '">View</a></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="muted">No candidates yet. Upload a resume from the Candidates page.</p>') + '</div>';
+}
+function tableRows(rows) {
+  if (!rows.length) return '<div class="empty">No candidates match these filters. Clear a filter or add a candidate profile.</div>';
+  return '<div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Compare</th><th>Rank</th><th>Candidate</th><th data-act="sortk" data-k="score" class="sortable' + (filters.sort === 'high' || filters.sort === 'low' ? ' sorted' : '') + '" role="button" tabindex="0" aria-label="Sort by match score">Match' + (filters.sort === 'low' ? ' <span class="arr">↑</span>' : filters.sort === 'high' ? ' <span class="arr">↓</span>' : '') + '</th><th>Skills</th><th data-act="sortk" data-k="new" class="sortable' + (filters.sort === 'new' ? ' sorted' : '') + '" role="button" tabindex="0" aria-label="Sort by date added">Updated</th><th>Experience</th><th>Status</th><th>Actions</th></tr></thead><tbody>' +
+    rows.map(function (r) {
+      return '<tr><td data-l="Compare"><input type="checkbox" data-act="sel" data-id="' + r.c.id + '" aria-label="Select ' + esc(r.c.name) + ' for comparison"' + (sel.indexOf(r.c.id) >= 0 ? ' checked' : '') + '></td>' +
+        '<td data-l="Rank">#' + r.rank + '</td><td data-l="Candidate"><a href="#/candidates/' + r.c.id + '"><b>' + esc(r.c.name) + '</b></a><span class="sub">' + esc(r.j.title) + '</span></td>' +
+        '<td data-l="Match">' + scoreCell(r.s.overall) + '</td><td data-l="Skills">' + r.s.skills + '% <span class="muted small">(' + r.s.matchedReq.length + '/' + r.j.req.length + ' required)</span></td>' +
+        '<td data-l="Updated">' + fmtDate(r.c.created) + '</td><td data-l="Experience">' + totalYears(r.c) + ' yrs</td><td data-l="Status">' + badge(r.c.status) + '</td>' +
+        '<td data-l="Actions"><div class="row"><a class="btn sm" href="#/candidates/' + r.c.id + '">View</a><button class="btn sm ok" data-act="status" data-id="' + r.c.id + '" data-s="Shortlisted">Shortlist</button><button class="btn sm bad" data-act="status" data-id="' + r.c.id + '" data-s="Rejected">Reject</button><a class="btn sm" href="#/reports/' + r.c.id + '">Report</a></div></td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+function viewCandidates() {
+  return head('Candidates', 'Review and evaluate candidates across active roles', '<button class="btn primary" id="cmpBtn" data-act="compare">Compare Selected (' + sel.length + ')</button>') +
+    '<div class="card" style="margin-bottom:14px"><h2>Add Candidate</h2><div class="filters" style="margin-bottom:8px"><select id="upJob" aria-label="Job for this resume">' + db.jobs.map(function (j) { return '<option value="' + j.id + '"' + (String(filters.jobId) === String(j.id) ? ' selected' : '') + '>' + esc(j.title) + '</option>'; }).join('') + '</select>' +
+    '<input type="file" id="upFile" accept="application/pdf,.pdf" aria-label="Resume PDF"><button class="btn primary" id="upLoad" data-act="loadprofile" disabled>Load Demo Candidate Profile</button></div>' +
+    '<p id="upMsg" class="muted small">Select a resume PDF (maximum 5 MB). Demo mode: the file is not read — real extraction requires the production backend. Use "Load Demo Candidate Profile" to continue.</p></div>' +
+    '<div class="card" style="padding:12px 16px"><div class="filters" style="margin-bottom:0"><input id="fQ" placeholder="Search candidates..." aria-label="Search candidates" value="' + esc(filters.q) + '">' +
+    '<select id="fJob" aria-label="Filter by job"><option value="">Job: All jobs</option>' + db.jobs.map(function (j) { return '<option value="' + j.id + '"' + (String(filters.jobId) === String(j.id) ? ' selected' : '') + '>' + esc(j.title) + '</option>'; }).join('') + '</select>' +
+    '<select id="fStatus" aria-label="Filter by status"><option value="">Status: All</option>' + STATUSES.map(function (s) { return '<option' + (filters.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' +
+    '<select id="fExp" aria-label="Filter by experience"><option value="">Experience: Any</option><option value="1">1+ yrs</option><option value="2">2+ yrs</option><option value="3">3+ yrs</option><option value="5">5+ yrs</option></select>' +
+    '<input id="fMin" type="number" min="0" max="100" placeholder="Match: 80%+" aria-label="Minimum score" value="' + (filters.min || '') + '">' +
+    '<select id="fSort" aria-label="Sort"><option value="high"' + (filters.sort === 'high' ? ' selected' : '') + '>Highest match</option><option value="low"' + (filters.sort === 'low' ? ' selected' : '') + '>Lowest match</option><option value="new"' + (filters.sort === 'new' ? ' selected' : '') + '>Newest</option></select></div></div>' +
+    '<div class="card" style="padding:12px 16px"><div id="candTable">' + tableRows(candRows()) + '</div></div>';
+}
+function candRows() {
+  var rows = filterCandidates(db, filters);
+  if (filters.exp) rows = rows.filter(function (r) { return totalYears(r.c) >= Number(filters.exp); });
+  return rows;
+}
+function viewProfile(id) {
+  var c = findCand(db, id), j = c && findJob(db, c.jobId); if (!j) return viewNotFound();
+  var s = scoreCandidate(c, j), rank = scoredAll(db).filter(function (r) { return r.c.id === c.id; })[0].rank;
+  return head(esc(c.name), esc(j.title) + ' · ' + esc(c.email), '<button class="btn primary" data-act="report" data-id="' + c.id + '">Generate Report</button>') +
+    '<div class="pgtable"><div>' +
+    '<div class="card" style="margin-bottom:14px"><div class="row" style="gap:16px">' + ring(s.overall) + '<div><h2 style="margin:0">Match for ' + esc(j.title) + '</h2><p class="muted">Rank #' + rank + ' for this role · ' + scoreWord(s.overall) + '</p><p style="margin:6px 0">' + badge(c.status) + '</p><select data-change="setstatus" data-id="' + c.id + '" aria-label="Set status">' + STATUSES.map(function (t) { return '<option' + (c.status === t ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></div></div>' +
+    '<div style="margin-top:14px">' + meter('Skills', s.skills) + meter('Experience', s.experience) + meter('Relevance', s.semantic) + meter('Education', s.education) + meter('Projects', s.projects) + '</div>' +
+    '<p class="muted small" style="margin-top:8px">Relevance is keyword overlap in demo mode, not an LLM embedding.</p></div>' +
+    '<div class="card" style="margin-bottom:14px"><h2>Screening Insights</h2><h3>Why This Score</h3><p class="small">' + esc(s.explanation) + '</p>' +
+    '<h3 style="margin-top:10px">Experience match</h3><p class="muted small">' + esc(s.notes.experience) + '</p>' +
+    '<h3 style="margin-top:8px">Education match</h3><p class="muted small">' + esc(s.notes.education) + '</p>' +
+    '<h3 style="margin-top:8px">Project relevance</h3><p class="muted small">' + esc(s.notes.project) + '</p>' +
+    '<h3 style="margin-top:12px">Resume Evidence</h3>' + ul(s.evidence) + '</div>' +
+    '<div class="card" style="margin-bottom:14px"><h2>Skill Analysis</h2>' + skillGroup('Matched', s.matched, 'check', 'yes') + skillGroup('Partial', s.partial, 'minus', 'yes') + skillGroup('Missing', s.missing, 'xmark', 'no') + '<h3 style="margin-top:12px">All listed skills</h3>' + chips(normalizeSkills(c.skills)) + '</div>' +
+    '<div class="card"><h2>Experience</h2>' + (c.experience.length ? c.experience.map(function (e) { return '<p><b>' + esc(e.role) + '</b>, ' + esc(e.company) + ' <span class="muted">(' + e.years + ' yr)</span><br><span class="muted">' + esc(e.summary) + '</span></p>'; }).join('') : '<p class="muted">None listed</p>') +
+    '<h2 style="margin:14px 0 8px">Projects</h2>' + c.projects.map(function (p) { return '<p><b>' + esc(p.name) + '</b><br><span class="muted">' + esc(p.desc) + '</span><br>' + chips(p.tech) + '</p>'; }).join('') + '</div>' +
+    '</div><div class="profile-rail">' +
+    '<div class="card"><h2>Decision</h2><div style="display:grid;gap:8px"><button class="btn ok" data-act="status" data-id="' + c.id + '" data-s="Shortlisted">Shortlist</button><button class="btn bad" data-act="status" data-id="' + c.id + '" data-s="Rejected">Reject</button><button class="btn" data-act="status" data-id="' + c.id + '" data-s="Under Review">Move to Review</button><button class="btn" data-act="status" data-id="' + c.id + '" data-s="Interview">Move to Interview</button></div>' +
+    '<p class="muted small" style="margin-top:10px">AI-assisted analysis. The final hiring decision remains with the recruiter.</p></div>' +
+    '<div class="card"><h2>Details</h2>' + def('Email', esc(c.email)) + def('Phone', esc(c.phone)) + def('Location', esc(c.location)) + def('Experience', totalYears(c) + ' yrs') + def('Education', esc(c.education.join('; '))) + def('Certifications', esc(c.certs.join('; ') || 'None')) + '</div>' +
+    '<div class="card"><h2>Tools</h2><div style="display:grid;gap:8px"><button class="btn" data-act="questions" data-id="' + c.id + '">Generate Interview Questions</button><button class="btn" data-act="cmpone" data-id="' + c.id + '">Add to Compare</button><a class="btn" href="#/reports/' + c.id + '">View Screening Report</a></div></div>' +
+    '<div class="card"><h2>Recruiter Notes</h2><form data-form="notes" data-id="' + c.id + '"><textarea id="notesText" rows="4" aria-label="Recruiter notes">' + esc(c.notes) + '</textarea><button class="btn sm primary" style="margin-top:8px">Save Notes</button></form></div>' +
+    '</div></div>';
+}
+function viewCompare() {
+  var R = sel.map(function (id) { var c = findCand(db, id), j = c && findJob(db, c.jobId); return c && j ? { c: c, j: j, s: scoreCandidate(c, j) } : null; }).filter(Boolean);
+  if (R.length < 2) return head('Compare Candidates', 'Pick 2 to 4 candidates') + '<div class="empty">Select at least two candidates on the <a href="#/candidates">Candidates</a> page to compare them.</div>';
+  function row(label, f) { return '<tr><th scope="row">' + label + '</th>' + R.map(function (r) { return '<td>' + f(r) + '</td>'; }).join('') + '</tr>'; }
+  function metricRow(label, get, hl) { var vals = R.map(get), mx = Math.max.apply(null, vals); return '<tr><th scope="row">' + label + '</th>' + R.map(function (r) { var v = get(r); return '<td' + (hl && v === mx ? ' style="background:var(--accent-soft)"' : '') + '><b>' + v + '%</b></td>'; }).join('') + '</tr>'; }
+  return head('Compare Candidates', R.length + ' selected', '<button class="btn" data-act="clearsel">Clear Selection</button>') +
+    '<div class="card tablewrap"><table class="cmp"><thead><tr><th></th>' + R.map(function (r) { return '<th><a href="#/candidates/' + r.c.id + '">' + esc(r.c.name) + '</a><br><span class="muted small">' + esc(r.j.title) + '</span></th>'; }).join('') + '</tr></thead><tbody>' +
+    metricRow('Overall Match', function (r) { return r.s.overall; }, true) +
+    metricRow('Skills', function (r) { return r.s.skills; }, true) + metricRow('Experience', function (r) { return r.s.experience; }, true) +
+    metricRow('Relevance', function (r) { return r.s.semantic; }, true) +
+    metricRow('Education', function (r) { return r.s.education; }, true) + metricRow('Projects', function (r) { return r.s.projects; }, true) +
+    row('Matched Skills', function (r) { return chips(r.s.matched, 'y'); }) + row('Missing Skills', function (r) { return chips(r.s.missing, 'n'); }) +
+    row('Strengths', function (r) { return ul(r.s.strengths); }) + row('Gaps', function (r) { return ul(r.s.gaps); }) + row('Status', function (r) { return badge(r.c.status); }) + '</tbody></table></div>';
+}
+function viewShortlisted() {
+  var rows = scoredAll(db).filter(function (r) { return r.c.status === 'Shortlisted'; }).sort(function (a, b) { return b.s.overall - a.s.overall; });
+  return head('Shortlisted', 'Candidates you have shortlisted across all roles') + (rows.length ? '<div class="card" style="padding:12px 16px"><div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Candidate</th><th>Role</th><th>Match</th><th>Top Skills</th><th>Actions</th></tr></thead><tbody>' + rows.map(function (r) {
+    return '<tr><td data-l="Candidate"><a href="#/candidates/' + r.c.id + '"><b>' + esc(r.c.name) + '</b></a></td><td data-l="Role">' + esc(r.j.title) + '</td><td data-l="Match">' + scoreCell(r.s.overall) + '</td><td data-l="Skills">' + chips(r.s.matched.slice(0, 4), 'y') + '</td><td data-l="Actions"><div class="row"><a class="btn sm" href="#/candidates/' + r.c.id + '">View</a><a class="btn sm" href="#/reports/' + r.c.id + '">Report</a><button class="btn sm" data-act="status" data-id="' + r.c.id + '" data-s="Interview">Move to Interview</button></div></td></tr>';
+  }).join('') + '</tbody></table></div></div>' : '<div class="empty">No shortlisted candidates yet. Shortlist someone from the <a href="#/candidates">Candidates</a> page.</div>');
+}
+function viewReports() {
+  var rows = scoredAll(db);
+  return head('Reports', 'Open a screening report for any candidate') + (rows.length ? '<div class="card tablewrap"><table class="rt"><thead><tr><th>Candidate</th><th>Job</th><th>Score</th><th>Status</th><th></th></tr></thead><tbody>' +
+    rows.map(function (r) { return '<tr><td data-l="Candidate">' + esc(r.c.name) + '</td><td data-l="Job">' + esc(r.j.title) + '</td><td data-l="Score">' + r.s.overall + '%</td><td data-l="Status">' + badge(r.c.status) + '</td><td><a class="btn sm" href="#/reports/' + r.c.id + '">Open Report</a></td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="empty">No candidates to report on yet.</div>');
+}
+function viewReport(id) {
+  var r = buildReport(db, id); if (!r) return viewNotFound();
+  var c = r.cand, j = r.job, s = r.s, q = makeQuestions(c, j, s);
+  return head('Screening Report', 'Ready to print or save as PDF', '<button class="btn primary" data-act="print">Print / Save as PDF</button><a class="btn" href="#/reports">All Reports</a>') +
+    '<article class="report">' +
+    '<div class="row between" style="border-bottom:2px solid var(--text);padding-bottom:12px;margin-bottom:16px"><div><h1>HireLens AI</h1><p class="muted small">Candidate Screening Report · Confidential</p></div><div style="text-align:right"><p class="small muted">Generated</p><p class="small"><b>' + fmtDate(r.date) + '</b></p></div></div>' +
+    '<h2>Candidate Summary</h2>' + def('Candidate', '<b>' + esc(c.name) + '</b>') + def('Position', esc(j.title) + ', ' + esc(j.company)) + def('Location', esc(c.location)) + def('Overall Match Score', '<b>' + s.overall + '%</b> — ' + scoreWord(s.overall)) + def('Recruiter Status', esc(r.status)) +
+    '<h2>Match Breakdown</h2>' + meter('Skills', s.skills) + meter('Experience', s.experience) + meter('Relevance', s.semantic) + meter('Education', s.education) + meter('Projects', s.projects) +
+    '<h2>Matched Skills</h2>' + chips(s.matched, 'y') + '<h2>Skill Gaps</h2>' + chips(s.missing, 'n') +
+    '<h2>Experience</h2>' + ul(c.experience.map(function (e) { return e.role + ', ' + e.company + ' (' + e.years + ' yr): ' + e.summary; })) + '<p class="muted small">' + esc(s.notes.experience) + '</p>' +
+    '<h2>Education</h2>' + ul(c.education) + '<p class="muted small">' + esc(s.notes.education) + '</p>' +
+    '<h2>Projects</h2>' + ul(c.projects.map(function (p) { return p.name + ': ' + p.desc + ' (' + p.tech.join(', ') + ')'; })) +
+    '<h2>Key Strengths</h2>' + ul(s.strengths) + '<h2>Evidence</h2>' + ul(s.evidence) +
+    '<h2>Screening Explanation</h2><p class="small">' + esc(s.explanation) + '</p>' +
+    '<h2>Recommended Interview Questions</h2><h3>Technical</h3>' + ul(q.technical.slice(0, 3)) + '<h3 style="margin-top:6px">Behavioral</h3>' + ul(q.behavioral.slice(0, 2)) +
+    '<h2>Recruiter Decision</h2>' + def('Status', esc(r.status)) + def('Notes', esc(r.notes) || 'None') +
+    '<p class="muted small" style="margin-top:20px;border-top:1px solid var(--line);padding-top:10px">HireLens AI — demo build. Screening insights are decision-support only; final hiring decisions remain with the recruiter.</p></article>';
+}
+function viewAnalytics() {
+  var st = stats(db), n = st.total || 1;
+  var byStatus = STATUSES.map(function (s) { return [s, countStatus(db, s)]; });
+  var perJob = db.jobs.map(function (j) { return [j.title, db.cands.filter(function (c) { return c.jobId === j.id; }).length]; });
+  return head('Analytics', 'Pipeline health across all jobs') +
+    '<div class="grid g5"><div class="card stat"><b>' + st.avg + '%</b><span>Average Score</span></div><div class="card stat"><b>' + Math.round(st.short / n * 100) + '%</b><span>Shortlisted</span></div><div class="card stat"><b>' + Math.round(st.rejected / n * 100) + '%</b><span>Rejected</span></div></div>' +
+    '<div class="grid g2" style="margin-top:14px"><div class="card"><h2>Candidates by Status</h2>' + donut(byStatus) + '</div><div class="card"><h2>Score Distribution</h2>' + columns(distBuckets(st.rows)) + '</div>' +
+    '<div class="card"><h2>Most Common Skills</h2>' + hbars(topCounts(db.cands.reduce(function (a, c) { return a.concat(normalizeSkills(c.skills)); }, []))) + '</div>' +
+    '<div class="card"><h2>Most Common Missing Skills</h2>' + hbars(topCounts(st.rows.reduce(function (a, r) { return a.concat(r.s.missing); }, []))) + '</div>' +
+    '<div class="card"><h2>Candidates per Job</h2>' + hbars(perJob) + '</div></div>';
+}
+function viewSettings() {
+  var s = db.settings, w = currentWeights();
+  function wpct(k) { return Math.round(w[k] * 100); }
+  return head('Settings', 'Workspace preferences — stored in this browser only') +
+    '<div class="pgtable"><div><form class="card" style="margin-bottom:14px" data-form="settings"><h2>Profile</h2>' +
+    '<div class="field"><label for="sName">Name</label><input id="sName" value="' + esc(s.name) + '"></div><div class="field"><label for="sEmail">Email</label><input id="sEmail" type="email" value="' + esc(s.email) + '"></div>' +
+    '<div class="field"><label for="sCompany">Company</label><input id="sCompany" value="' + esc(s.company) + '"></div>' +
+    '<div class="field"><label><input type="checkbox" id="sNotify"' + (s.notify ? ' checked' : '') + '> Notify me about new screenings</label></div>' +
+    '<div class="formsec">Appearance</div><div class="field"><label for="sTheme">Theme</label><select id="sTheme"><option value="light"' + (s.theme === 'light' ? ' selected' : '') + '>Light (default)</option><option value="dark"' + (s.theme === 'dark' ? ' selected' : '') + '>Dark</option></select></div>' +
+    '<div class="row"><button class="btn primary">Save Settings</button><button type="button" class="btn" data-act="logout">Sign Out</button></div></form>' +
+    '<div class="card"><h2>Data Management</h2><p class="muted small">All jobs, candidates, screenings and audit logs live in this browser\u2019s localStorage. Resetting restores the original demo dataset.</p>' +
+    '<div class="row" style="margin-top:12px"><button type="button" class="btn" data-act="selftestbtn">Run Self-Test</button><button type="button" class="btn bad" data-act="resetask">Reset Demo Data</button></div></div></div>' +
+    '<div class="profile-rail"><div class="card"><h2>Scoring Weights</h2><p class="muted small">Default hybrid scoring model. Adjust live in the <a href="#/simulator">Ranking Simulator</a>.</p>' +
+    meter('Skills', wpct('skills')) + meter('Experience', wpct('experience')) + meter('Relevance', wpct('semantic')) + meter('Education', wpct('education')) + meter('Projects', wpct('projects')) + '</div>' +
+    '<div class="card"><h2>About This Build</h2><p class="muted small">Browser-only demo. No real AI, resume extraction, database or server authentication. The centralized API layer is ready for backend integration. Scores come from a deterministic engine; a developer self-test is available under Data Management.</p></div></div></div>';
+}
+function viewNotFound() { return head('Not Found', 'That page or item does not exist') + '<a class="btn" href="#/dashboard">Back to Dashboard</a>'; }
+
+function viewScreening() {
+  var scr = db.screenings || [];
+  return head('Screening', 'Run the explainable matching engine and review screening insights', '<button class="btn primary" data-act="runscreen">Run Screening (All Pending)</button>') +
+    '<div class="banner"><h2>AI-Assisted Screening</h2><p class="muted">Scores come from a transparent hybrid engine: Skills ' + Math.round(currentWeights().skills * 100) + '%, Experience ' + Math.round(currentWeights().experience * 100) + '%, Relevance ' + Math.round(currentWeights().semantic * 100) + '%, Education ' + Math.round(currentWeights().education * 100) + '%, Projects ' + Math.round(currentWeights().projects * 100) + '%. No personal attributes are used. Final decisions remain with the recruiter.</p></div>' +
+    '<div class="card" style="margin-bottom:14px"><h2>Candidates Pending Review</h2>' + (function () {
+      var pending = scoredAll(db).filter(function (r) { return r.c.status === 'New' || r.c.status === 'Under Review'; });
+      if (!pending.length) return '<div class="empty">No candidates are pending review. Upload a resume from the <a href="#/candidates">Candidates</a> page.</div>';
+      return '<div class="tablewrap"><table class="rt"><thead><tr><th>Candidate</th><th>Job</th><th>Match Score</th><th>Top Skill Gaps</th><th>Status</th><th>Action</th></tr></thead><tbody>' +
+        pending.map(function (r) { return '<tr><td data-l="Candidate"><a href="#/candidates/' + r.c.id + '">' + esc(r.c.name) + '</a></td><td data-l="Job">' + esc(r.j.title) + '</td><td data-l="Match"><b>' + r.s.overall + '%</b></td><td data-l="Gaps">' + (r.s.missing.length ? chips(r.s.missing.slice(0, 3), 'n') : '<span class="muted">None</span>') + '</td><td data-l="Status">' + badge(r.c.status) + '</td><td><div class="row"><button class="btn sm primary" data-act="screenone" data-id="' + r.c.id + '">Screen</button><button class="btn sm ok" data-act="status" data-id="' + r.c.id + '" data-s="Shortlisted">Shortlist</button><a class="btn sm" href="#/candidates/' + r.c.id + '">Insights</a></div></td></tr>'; }).join('') + '</tbody></table></div>';
+    })() + '</div>' +
+    '<div class="card"><h2>Screening History</h2>' + (scr.length ? '<div class="tablewrap"><table class="rt"><thead><tr><th>Time</th><th>Candidate</th><th>Job</th><th>Score</th></tr></thead><tbody>' + scr.slice(0, 10).map(function (x) {
+      var c = findCand(db, x.candId), j = findJob(db, x.jobId);
+      return '<tr><td data-l="Time">' + fmtDate(x.t) + '</td><td data-l="Candidate">' + (c ? esc(c.name) : '—') + '</td><td data-l="Job">' + (j ? esc(j.title) : '—') + '</td><td data-l="Score"><b>' + x.overall + '%</b></td></tr>';
+    }).join('') + '</tbody></table></div>' : '<div class="empty">No screening runs recorded yet. Press “Run Screening (All Pending)” above.</div>') + '</div>';
+}
+function viewRanking() {
+  var jobId = filters.jobId || (db.jobs[0] && db.jobs[0].id);
+  var rows = jobId ? rankForJob(db, jobId).filter(function (r) { return r.s.overall >= (Number(filters.min) || 0) && (!filters.status || r.c.status === filters.status); }) : [];
+  var j = findJob(db, jobId);
+  return head('Candidate Ranking', (j ? esc(j.title) + ' · ' : '') + rows.length + ' candidates ranked by calculated match') +
+    '<div class="card" style="padding:12px 16px;margin-bottom:14px"><div class="filters" style="margin-bottom:0"><select id="rJob" aria-label="Job">' + db.jobs.map(function (x) { return '<option value="' + x.id + '"' + (String(jobId) === String(x.id) ? ' selected' : '') + '>' + esc(x.title) + '</option>'; }).join('') + '</select>' +
+    '<select id="rStatus" aria-label="Status"><option value="">Status: All</option>' + STATUSES.map(function (s) { return '<option' + (filters.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' +
+    '<input id="rMin" type="number" min="0" max="100" placeholder="Match: 80%+" value="' + (filters.min || '') + '">' +
+    '<select id="rReq" aria-label="Required skill"><option value="">Any required skill</option>' + (j ? j.req.map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('') : '') + '</select></div></div>' +
+    (rows.length ? '<div class="card" style="padding:12px 16px"><div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Rank</th><th>Candidate</th><th>Match</th><th>Skills</th><th>Experience</th><th>Relevance</th><th>Status</th><th>Actions</th></tr></thead><tbody>' +
+      rows.map(function (r, i) { return '<tr><td data-l="Rank"><span class="rank-badge' + (i < 3 ? ' top' : '') + '">#' + r.rank + '</span></td><td data-l="Candidate"><a href="#/candidates/' + r.c.id + '"><b>' + esc(r.c.name) + '</b></a><span class="sub">' + scoreWord(r.s.overall) + '</span></td><td data-l="Match">' + scoreCell(r.s.overall) + '</td><td data-l="Skills">' + r.s.skills + '%</td><td data-l="Experience">' + r.s.experience + '%</td><td data-l="Relevance">' + r.s.semantic + '%</td><td data-l="Status">' + badge(r.c.status) + '</td><td data-l="Actions"><div class="row"><a class="btn sm" href="#/candidates/' + r.c.id + '">Profile</a><a class="btn sm" href="#/reports/' + r.c.id + '">Report</a><button class="btn sm ok" data-act="status" data-id="' + r.c.id + '" data-s="Shortlisted">Shortlist</button></div></td></tr>'; }).join('') +
+      '</tbody></table></div><p class="muted small" style="margin-top:8px">Full score breakdown is on each candidate profile. Test alternative weights in the <a href="#/simulator">Ranking Simulator</a>.</p></div>'
+      : '<div class="empty">No candidates match these ranking filters. Lower the minimum score or clear the status filter.</div>');
+}
+
+/* ======================= v3 pages ======================= */
+function viewSimulator() {
+  if (!db.jobs.length) return head('Ranking Simulator', 'Recalculate rankings with custom weights') + '<div class="empty">No jobs created yet. Create a job on the <a href="#/jobs">Jobs</a> page first.</div>';
+  var jobId = filters.jobId || (db.jobs[0] && db.jobs[0].id);
+  var w = simWeights || currentWeights();  var pct = { skills: Math.round(w.skills * 100), experience: Math.round(w.experience * 100), semantic: Math.round(w.semantic * 100), education: Math.round(w.education * 100), projects: Math.round(w.projects * 100) };
+  var total = pct.skills + pct.experience + pct.semantic + pct.education + pct.projects;
+  var before = rankForJob(db, jobId, WEIGHTS).map(function (r) { return { id: r.c.id, name: r.c.name, score: r.s.overall }; });
+  var after = rankForJob(db, jobId, w).map(function (r) { return { id: r.c.id, name: r.c.name, score: r.s.overall }; });
+  function afterLine(i, a) {
+    var old = -1; before.forEach(function (x, k) { if (x.id === a.id) old = k; });
+    var mv = old - i, cls = mv > 0 ? 'up' : mv < 0 ? 'down' : 'same';
+    return '<div class="row between" style="padding:5px 0"><span><span class="rank-badge' + (i < 3 ? ' top' : '') + '">#' + (i + 1) + '</span> <a href="#/candidates/' + a.id + '">' + esc(a.name) + '</a></span><span><b>' + a.score + '%</b> <span class="mv ' + cls + '">' + (mv > 0 ? '▲ +' + mv : mv < 0 ? '▼ ' + mv : '—') + '</span></span></div>';
+  }
+  function expl() {
+    var moved = [];
+    after.forEach(function (a, i) { var o = -1; before.forEach(function (x, k) { if (x.id === a.id) o = k; }); if (o !== i) moved.push({ name: a.name, from: o + 1, to: i + 1 }); });
+    if (!moved.length) return '<p class="muted small">Rankings are unchanged with these weights.</p>';
+    var m = moved[0];
+    return '<p class="muted small">' + esc(m.name) + ' moved from #' + m.from + ' to #' + m.to + ' because the new weights (skills ' + pct.skills + '%, experience ' + pct.experience + '%, relevance ' + pct.semantic + '%, education ' + pct.education + '%, projects ' + pct.projects + '%) favour this candidate\u2019s profile differently.' + (moved.length - 1 ? ' (' + (moved.length - 1) + ' other candidate(s) also moved.)' : '') + '</p>';
+  }
+  function sliders() {
+    return [['skills', 'Skills'], ['experience', 'Experience'], ['semantic', 'Relevance'], ['education', 'Education'], ['projects', 'Projects']].map(function (k) {
+      return '<div class="slider"><span>' + k[1] + '</span><input type="range" min="0" max="100" step="5" data-simw="' + k[0] + '" value="' + pct[k[0]] + '" aria-label="' + k[1] + ' weight"><b>' + pct[k[0]] + '%</b></div>';
+    }).join('');
+  }
+  return head('Ranking Simulator', 'Decision support: test alternative scoring weights before applying them') +
+    '<div class="pgtable"><div><div class="card"><h2>Scoring Configuration</h2>' +
+    '<div class="filters" style="margin-bottom:12px"><select id="rJob" aria-label="Job">' + db.jobs.map(function (x) { return '<option value="' + x.id + '"' + (String(jobId) === String(x.id) ? ' selected' : '') + '>' + esc(x.title) + '</option>'; }).join('') + '</select><b style="color:' + (total === 100 ? 'var(--ok)' : 'var(--warn)') + '">Total: ' + total + '%</b>' +
+    (simWeights ? '<button class="btn" data-act="simreset">Reset</button><button class="btn primary" data-act="simsave">Save as Default</button>' : '<button class="btn primary" data-act="simedit">Adjust Weights</button>') + '</div>' +
+    (simWeights ? sliders() : '<p class="muted small">Current model: Skills ' + pct.skills + '%, Experience ' + pct.experience + '%, Relevance ' + pct.semantic + '%, Education ' + pct.education + '%, Projects ' + pct.projects + '%. Press “Adjust Weights” to simulate alternatives.</p>') +
+    '<p class="muted small" style="margin-top:10px">Scores are recalculated live from candidate data. Saving applies these weights across the app.</p></div></div>' +
+    '<div class="profile-rail"><div class="card"><h2>Ranking Preview — Your Weights</h2>' + after.map(function (a, i) { return afterLine(i, a); }).join('') + '<h3 style="margin-top:10px">Why it changed</h3>' + expl() + '</div>' +
+    '<div class="card"><h2>Baseline — Default Weights</h2>' + before.map(function (a, i) { return '<div class="row between" style="padding:5px 0"><span><span class="rank-badge">#' + (i + 1) + '</span> <a href="#/candidates/' + a.id + '">' + esc(a.name) + '</a></span><b>' + a.score + '%</b></div>'; }).join('') + '</div></div></div>';
+}
+function viewInterview() {
+  if (!db.cands.length) return head('AI Interview', 'Generate a structured interview kit for one candidate') + '<div class="empty">No candidates yet. Add candidates on the <a href="#/candidates">Candidates</a> page first.</div>';
+  return head('Interview Preparation', 'Structured question sets for your interview loop — demo generation, not live AI') +
+    '<div class="card" style="margin-bottom:14px"><div class="filters"><select id="iqCand" aria-label="Candidate">' + db.cands.map(function (c) { var j = findJob(db, c.jobId); return '<option value="' + c.id + '">' + esc(c.name) + ' — ' + esc(j ? j.title : '') + '</option>'; }).join('') + '</select>' +
+    '<button class="btn primary" data-act="iqgen">Generate Interview Kit</button></div></div>' +
+    '<div class="card" id="iqOut"><h2>Interview Kit</h2><div class="empty">Select a candidate and press “Generate Interview Kit”.</div></div>';
+}
+function evalDataset() {
+  var d = defaultData();
+  var cases = [
+    { name: 'Skill normalization: JS→JavaScript, ReactJS→React, Node→Node.js, Mongo→MongoDB', run: function () { return normalizeSkill('JS') === 'JavaScript' && normalizeSkill('ReactJS') === 'React' && normalizeSkill('Node') === 'Node.js' && normalizeSkill('Mongo') === 'MongoDB'; } },
+    { name: 'Score calculation: overall equals weighted sum of components', run: function () { var w = WEIGHTS; return scoredAll(d).every(function (r) { var s = r.s; return s.overall === Math.round(s.skills * w.skills + s.experience * w.experience + s.semantic * w.semantic + s.education * w.education + s.projects * w.projects); }); } },
+    { name: 'Skill gap detection: missing lists required skills the candidate lacks', run: function () { var r = scoreCandidate(findCand(d, 6), findJob(d, 1)); return r.missing.indexOf('React') >= 0 && r.missing.indexOf('Git') >= 0 && r.matchedReq.indexOf('HTML') >= 0; } },
+    { name: 'Ranking: sorted descending within each job', run: function () { return d.jobs.every(function (j) { var r = rankForJob(d, j.id); return r.every(function (x, i) { return i === 0 || r[i - 1].s.overall >= x.s.overall; }); }); } },
+    { name: 'Stronger candidate outscores weaker one (same job)', run: function () { return scoreCandidate(findCand(d, 1), findJob(d, 3)).overall > scoreCandidate(findCand(d, 3), findJob(d, 3)).overall; } },
+    { name: 'Filtering: status and minimum-score filters', run: function () { var a = filterCandidates(d, { status: 'Rejected' }), b = filterCandidates(d, { min: 80 }); return a.length === 1 && b.length < 8 && b.every(function (r) { return r.s.overall >= 80; }); } },
+    { name: 'Comparison: scored results returned for selected candidates', run: function () { var r = [1, 2].map(function (id) { var c = findCand(d, id), j = findJob(d, c.jobId); return { score: scoreCandidate(c, j) }; }); return r.length === 2 && r.every(function (x) { return x.score.overall > 0; }); } },
+    { name: 'Report: buildReport returns all sections, unknown id returns null', run: function () { var r = buildReport(d, 1); return !!r && r.s.evidence.length > 0 && !!r.status && buildReport(d, 999) === null; } }
+  ];
+  var tp = 0, fp = 0, fn = 0;
+  d.cands.forEach(function (c) {
+    var j = findJob(d, c.jobId), s = scoreCandidate(c, j);
+    var coverage = j.req.length ? j.req.filter(function (x) { return s.matchedReq.indexOf(x) >= 0; }).length / j.req.length : 1;
+    var truth = coverage >= 0.6, pred = s.overall >= 70;
+    if (pred && truth) tp++; else if (pred && !truth) fp++; else if (!pred && truth) fn++;
+  });
+  var precision = tp + fp ? tp / (tp + fp) : 0, recall = tp + fn ? tp / (tp + fn) : 0;
+  var f1 = precision + recall ? 2 * precision * recall / (precision + recall) : 0;
+  var r1 = rankForJob(d, 3), r2 = rankForJob(d, 3);
+  var consistent = JSON.stringify(r1.map(function (x) { return x.c.id; })) === JSON.stringify(r2.map(function (x) { return x.c.id; }));
+  return { cases: cases, precision: precision, recall: recall, f1: f1, consistent: consistent };
+}
+function evalRun(c) { try { return c.run() === true; } catch (err) { return false; } }
+function viewEvaluation() {
+  return head('AI Evaluation', 'Deterministic test suite for the screening engine — metrics are computed from real runs, never invented', '<button class="btn primary" data-act="runEval">Run Evaluation</button>') +
+    '<div id="evalOut"><div class="banner"><h2>Demo Evaluation Dataset</h2><p class="muted">Covers: skill matching, score calculation, skill gap detection, ranking, normalization, filtering, comparison and reports. Press “Run Evaluation” to execute the suite against the demo dataset.</p></div><div class="empty">No evaluation results yet.</div></div>';
+}
+function evalResultsHTML() {
+  var e = evalDataset(), pass = e.cases.filter(evalRun).length, fail = e.cases.length - pass;
+  return '<div class="grid g5"><div class="card stat metric"><b>' + e.cases.length + '</b><span>Test Cases</span></div>' +
+    '<div class="card stat metric"><b style="color:var(--ok)">' + pass + '</b><span>Passed</span></div>' +
+    '<div class="card stat metric"><b style="color:' + (fail ? 'var(--bad)' : 'var(--muted)') + '">' + fail + '</b><span>Failed</span></div>' +
+    '<div class="card stat metric"><b>' + Math.round(e.precision * 100) + '%</b><span>Precision</span></div>' +
+    '<div class="card stat metric"><b>' + Math.round(e.recall * 100) + '%</b><span>Recall</span></div>' +
+    '<div class="card stat metric"><b>' + e.f1.toFixed(2) + '</b><span>F1 Score</span></div>' +
+    '<div class="card stat metric"><b>' + (e.consistent ? '100%' : '0%') + '</b><span>Ranking Consistency</span></div></div>' +
+    '<div class="card" style="margin-top:14px"><h2>Evaluation Test Results</h2><div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Test</th><th>Category</th><th>Expected</th><th>Actual</th><th>Status</th></tr></thead><tbody>' +
+    e.cases.map(function (c) { var ok = evalRun(c), cat = c.name.split(':')[0]; return '<tr><td data-l="Test">' + esc(c.name) + '</td><td data-l="Category">' + esc(cat) + '</td><td data-l="Expected">Pass</td><td data-l="Actual">' + (ok ? 'Pass' : 'Fail') + '</td><td data-l="Status"><span style="color:' + (ok ? 'var(--ok)' : 'var(--bad)') + ';font-weight:600">' + (ok ? '✓ Pass' : '✕ Fail') + '</span></td></tr>'; }).join('') + '</tbody></table></div></div>' +
+    '<p class="muted small" style="margin-top:12px">Precision / recall / F1 compare engine predictions (overall score ≥ 70) against hand-labelled ground truth (required-skill coverage ≥ 60%) on the demo dataset. Ranking consistency = identical output across repeated identical runs.</p>';
+}
+function viewFairness() {
+  var excluded = ['Gender', 'Age', 'Religion', 'Caste', 'Photograph', 'Marital Status'];
+  var factors = [['Skills', 'Required and preferred skill coverage'], ['Experience', 'Years and relevance of professional experience'], ['Job Relevance', 'Keyword overlap between profile and job description'], ['Education', 'Highest qualification against the requirement'], ['Projects', 'Project work using required technologies']];
+  return head('Fairness &amp; Responsible Screening', 'What the engine uses — and deliberately does not use') +
+    '<div class="split2"><div class="card"><h2>Protected Attributes — Not Used For Ranking</h2>' + excluded.map(function (x) { return '<div class="fairrow no"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONS.minus + '"/></svg> <b>' + x + '</b><span class="muted small" style="margin-left:auto">Excluded</span></div>'; }).join('') + '<p class="muted small" style="margin-top:10px">These attributes are never collected, scored or ranked by the engine.</p></div>' +
+    '<div class="card"><h2>Ranking Factors</h2>' + factors.map(function (f) { return '<div class="fairrow yes"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONS.check + '"/></svg> <b>' + f[0] + '</b><span class="muted small" style="margin-left:auto">' + f[1] + '</span></div>'; }).join('') + '</div></div>' +
+    '<div class="banner" style="margin-top:14px"><h2>Human Oversight</h2><p>AI assists recruiters. Final hiring decisions remain with the recruiter. Every score is explainable and any ranking can be overridden by a recruiter decision.</p></div>';
+}
+function viewAudit() {
+  return head('Audit Logs', 'Workspace activity history — stored in this browser (demo)') +
+    (db.log.length ? '<div class="card" style="padding:12px 16px"><div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Timestamp</th><th>User</th><th>Action</th></tr></thead><tbody>' + db.log.map(function (l) {
+      var x = new Date(l.t);
+      return '<tr><td data-l="Timestamp">' + (isNaN(x) ? '' : x.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })) + ' · ' + fmtDate(l.t) + '</td><td data-l="User">' + esc(db.settings.name || 'Recruiter') + '</td><td data-l="Action">' + esc(l.m) + '</td></tr>';
+    }).join('') + '</tbody></table></div></div>' : '<div class="empty">No audit events recorded yet. Actions such as screening, shortlisting and report generation will appear here.</div>');
+}
+
+/* ======================= shell + render ======================= */
+function shell(page, content) {
+  var name = db.settings.name || 'User';
+  var r = parseRoute(location.hash), ctx = '';
+  if (r.id) { var jj = findJob(db, r.id), cc = findCand(db, r.id); ctx = jj ? jj.title : cc ? cc.name : ''; }
+  var nav = GROUPS.map(function (g) {
+    return '<div class="navgroup">' + g[0] + '</div>' + g[1].map(function (p) {
+      return '<a class="nav' + (p === page ? ' on' : '') + '" href="#/' + p + '"' + (p === page ? ' aria-current="page"' : '') + '>' + icon(p) + (NAVLABEL[p] || cap(p)) + '</a>';
+    }).join('');
+  }).join('');
+  return '<div class="shell"><aside class="side" id="side"><div class="logo"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;color:var(--accent)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M8 11l2 2 4-4"/></svg><span>HireLens <b>AI</b></span></div>' + nav +
+    '<div class="rai">AI-assisted screening insights are decision-support tools. Final hiring decisions remain with the recruiter.</div></aside>' +
+    '<div class="mainwrap"><header class="topbar noprint"><button class="btn sm menu-btn" data-act="menu" aria-label="Toggle navigation">' + icon('menu') + '</button>' +
+    '<div class="crumb grow"><b>' + (NAVLABEL[page] || cap(page)) + '</b>' + (ctx ? '<span class="sep">/</span><span class="muted">' + esc(ctx) + '</span>' : '') + '</div>' +
+    '<div class="topsearch"><input id="topSearch" type="search" placeholder="Search candidates..." aria-label="Search candidates"></div>' +
+    '<button class="iconbtn notifdot" data-act="bell" aria-label="Notifications">' + icon('bell') + '</button>' +
+    '<button class="iconbtn" data-act="toggletheme" aria-label="Toggle dark mode">' + icon('sun') + '</button>' +
+    '<div class="dd" id="dd"><button class="btn sm" data-act="dd" aria-haspopup="true"><span class="avatar">' + esc(name.charAt(0).toUpperCase()) + '</span>' + esc(name) + '</button><div class="dd-menu"><div class="dd-note small muted">' + esc(name) + ' · Demo Mode</div><button data-act="gosettings">Settings</button><button data-act="toggletheme">Toggle Theme</button><button data-act="logout">Sign Out</button></div></div></header>' +
+    '<main id="main">' + content + '</main><footer class="foot"><b>HireLens AI</b> · Intelligent Resume Screening &amp; Candidate Shortlisting · Demo build — all data is local to this browser</footer></div></div>';
+}
+function showLogin() { appEl.innerHTML = LOGIN_HTML; }
+function render() {
+  try {
+    document.documentElement.setAttribute('data-theme', db.settings.theme === 'light' ? 'light' : 'dark');
+    if (!db.user) { showLogin(); return; }
+    var r = parseRoute(location.hash), content;
+    switch (r.page) {
+      case 'dashboard': content = viewDashboard(); break;
+      case 'jobs': content = r.id ? viewJob(r.id) : viewJobs(); break;
+      case 'candidates': content = r.id ? viewProfile(r.id) : viewCandidates(); break;
+      case 'compare': content = viewCompare(); break;
+      case 'shortlisted': content = viewShortlisted(); break;
+      case 'screening': content = viewScreening(); break;
+      case 'ranking': content = viewRanking(); break;
+      case 'simulator': content = viewSimulator(); break;
+      case 'interview': content = viewInterview(); break;
+      case 'evaluation': content = viewEvaluation(); break;
+      case 'fairness': content = viewFairness(); break;
+      case 'audit': content = viewAudit(); break;
+      case 'reports': content = r.id ? viewReport(r.id) : viewReports(); break;
+      case 'analytics': content = viewAnalytics(); break;
+      case 'settings': content = viewSettings(); break;
+      default: content = viewNotFound();
+    }
+    appEl.innerHTML = shell(r.page, content);
+  } catch (err) {
+    showDevError('Render error: ' + (err && err.message ? err.message : err));
+    try { appEl.innerHTML = shell('dashboard', '<div class="card"><h2>Something went wrong showing this page</h2><p class="muted">Details are in the error panel below. Use Reset Application Data if the problem repeats.</p><p style="margin-top:10px"><a class="btn" href="#/dashboard">Back to Dashboard</a></p></div>'); } catch (e2) { /* login screen markup remains */ }
+  }
+}
+function go(hash) { if (location.hash === hash) render(); else location.hash = hash; }
+
+/* ======================= modals ======================= */
+function closeModal() { var m = $('#modalRoot'); if (m && m.parentNode) m.parentNode.removeChild(m); }
+function openModal(html) {
+  closeModal();
+  var d = document.createElement('div'); d.id = 'modalRoot'; d.className = 'modal-bg'; d.setAttribute('data-act', 'closebg');
+  d.innerHTML = '<div class="modal" role="dialog" aria-modal="true">' + html + '</div>';
+  document.body.appendChild(d);
+  var f = d.querySelector('input,textarea,select,button'); if (f) f.focus();
+}
+function jobFormHTML(job) {
+  var j = job || { title: '', company: db.settings.company, location: '', exp: '', edu: "Bachelor's", req: [], pref: [], desc: '' };
+  function f(id, label, val, type, extra) { return '<div class="field"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + (type || 'text') + '" value="' + esc(val) + '" ' + (extra || '') + '></div>'; }
+  return '<h2>' + (job ? 'Edit Job' : 'Create Job') + '</h2><form data-form="job" data-id="' + (job ? job.id : '') + '">' +
+    '<div class="formsec">Job Information</div>' + f('jfTitle', 'Job Title', j.title, 'text', 'required') + f('jfCompany', 'Company', j.company, 'text', 'required') + f('jfLocation', 'Location', j.location) +
+    '<div class="formsec">Requirements</div>' + f('jfExp', 'Experience Required (years)', j.exp, 'number', 'min="0" max="40"') + f('jfEdu', 'Education', j.edu) +
+    f('jfReq', 'Required Skills (comma separated)', j.req.join(', ')) + f('jfPref', 'Preferred Skills (comma separated)', j.pref.join(', ')) +
+    '<div class="formsec">Job Description</div>' +
+    '<div class="field"><label for="jfDesc">Job Description</label><textarea id="jfDesc" rows="6" required>' + esc(j.desc) + '</textarea></div><p class="form-err" id="jfErr" role="alert"></p>' +
+    '<div class="row"><button class="btn primary">' + (job ? 'Save Changes' : 'Create Job') + '</button><button type="button" class="btn" data-act="close">Cancel</button></div></form>';
+}
+function questionsHTML(c) {
+  var j = findJob(db, c.jobId), s = scoreCandidate(c, j), q = makeQuestions(c, j, s);
+  return '<h2>Interview Assistant — Demo Mode</h2><p class="muted small">Generated locally from templates using this candidate\'s skills and projects and the job requirements. It is not live AI.</p><h3 style="margin-top:10px">Technical questions</h3>' + ul(q.technical) + '<h3 style="margin-top:8px">Behavioral questions</h3>' + ul(q.behavioral) + '<h3 style="margin-top:8px">Project questions</h3>' + ul(q.project) + '<div class="row" style="margin-top:14px"><button class="btn primary" data-act="close">Close</button></div>';
+}
+
+/* ======================= self test ======================= */
+function runSelfTest() {
+  var res = [];
+  function t(name, fn) { try { var ok = fn(); res.push({ name: name, ok: ok === true, detail: ok === true ? '' : 'returned ' + String(ok) }); } catch (e) { res.push({ name: name, ok: false, detail: e && e.message ? e.message : String(e) }); } }
+  var d = defaultData();
+  t('initialization: #app and login markup exist', function () { return !!appEl && LOGIN_HTML.indexOf('HireLens') >= 0 && LOGIN_HTML.indexOf('Sign In') >= 0; });
+  t('localStorage: write, read and remove', function () { localStorage.setItem(TESTKEY, 'ok'); var v = localStorage.getItem(TESTKEY); localStorage.removeItem(TESTKEY); return v === 'ok'; });
+  t('localStorage: corrupted JSON is rejected', function () { return parseStored('{not json') === null && parseStored('{"jobs":1}') === null && parseStored(JSON.stringify(d)) !== null; });
+  t('default data: 4 jobs, 8 candidates, valid links', function () { return d.jobs.length === 4 && d.cands.length === 8 && validateDB(d); });
+  t('login: demo credentials accepted, wrong rejected', function () { return authenticate(DEMO_EMAIL, DEMO_PASS) && !authenticate(DEMO_EMAIL, 'wrong') && !authenticate('', ''); });
+  t('navigation: routes parse', function () { var a = parseRoute('#/jobs/2'), b = parseRoute(''), c = parseRoute('#/nope'); return a.page === 'jobs' && a.id === '2' && b.page === 'dashboard' && c.page === 'notfound' && parseRoute('#/compare').page === 'compare'; });
+  t('navigation: every page renders', function () { var keep = db; db = d; try { return [viewDashboard, viewJobs, viewCandidates, viewShortlisted, viewReports, viewAnalytics, viewSettings, viewCompare, viewScreening, viewRanking, viewSimulator, viewInterview, viewEvaluation, viewFairness, viewAudit].every(function (f) { return typeof f() === 'string'; }) && viewProfile(1).length > 100 && viewJob(1).length > 100; } finally { db = keep; } });
+  t('evaluation dataset: metrics bounded and consistent', function () { var e = evalDataset(); return e.precision >= 0 && e.precision <= 1 && e.recall >= 0 && e.recall <= 1 && e.f1 >= 0 && e.f1 <= 1 && e.consistent === true && e.cases.every(function (c) { return evalRun(c) === true; }); });
+  t('skills: normalization', function () { return normalizeSkill('JS') === 'JavaScript' && normalizeSkill('ReactJS') === 'React' && normalizeSkill('React.js') === 'React' && normalizeSkill('Node') === 'Node.js' && normalizeSkill('Mongo DB') === 'MongoDB' && normalizeSkill('Express JS') === 'Express.js' && normalizeSkills(['JS', 'JavaScript']).length === 1; });
+  t('scoring: weights sum to 1, scores bounded, overall is calculated', function () {
+    var w = WEIGHTS.skills + WEIGHTS.experience + WEIGHTS.semantic + WEIGHTS.education + WEIGHTS.projects;
+    if (Math.abs(w - 1) > 1e-9) return 'weights sum ' + w;
+    return scoredAll(d).every(function (r) { var s = r.s, e = Math.round(s.skills * .35 + s.experience * .2 + s.semantic * .25 + s.education * .1 + s.projects * .1); return [s.overall, s.skills, s.experience, s.semantic, s.education, s.projects].every(function (v) { return v >= 0 && v <= 100; }) && s.overall === e; });
+  });
+  t('scoring: stronger candidate outscores weaker one', function () { var a = scoreCandidate(findCand(d, 1), findJob(d, 3)).overall, b = scoreCandidate(findCand(d, 3), findJob(d, 3)).overall; return a > b || 'Aarav ' + a + ' vs Rahul ' + b; });
+  t('ranking: sorted descending within each job', function () { return d.jobs.every(function (j) { var r = rankForJob(d, j.id); return r.every(function (x, i) { return x.rank === i + 1 && (i === 0 || r[i - 1].s.overall >= x.s.overall); }); }); });
+  t('filtering: search, job, status, minimum score, sort', function () {
+    var a = filterCandidates(d, { q: 'aarav' }), b = filterCandidates(d, { jobId: 3 }), c = filterCandidates(d, { status: 'Rejected' }), all = filterCandidates(d, {}), hi = filterCandidates(d, { min: 80 }), skill = filterCandidates(d, { q: 'reactjs' }), low = filterCandidates(d, { sort: 'low' });
+    return a.length === 1 && b.length === 3 && c.length === 1 && all.length === 8 && hi.length < all.length && hi.every(function (r) { return r.s.overall >= 80; }) && skill.length >= 3 && low[0].s.overall <= low[low.length - 1].s.overall;
+  });
+  t('status update: changes status and counts', function () { var before = countStatus(d, 'Hired'); var ok = setStatus(d, 3, 'Hired'); return ok && findCand(d, 3).status === 'Hired' && countStatus(d, 'Hired') === before + 1 && !setStatus(d, 3, 'Bogus') && !setStatus(d, 999, 'New'); });
+  t('report: generated with required sections', function () { var keep = db; db = d; try { var r = buildReport(d, 1), h = viewReport(1); return !!r && r.s.overall > 0 && h.indexOf('Candidate Screening Report') >= 0 && h.indexOf('Score') >= 0 && buildReport(d, 999) === null; } finally { db = keep; } });
+  t('interview: 5 technical, 3 behavioral, 2 project questions', function () { var c = findCand(d, 1), s = scoreCandidate(c, findJob(d, 3)), q = makeQuestions(c, findJob(d, 3), s); return q.technical.length === 5 && q.behavioral.length === 3 && q.project.length === 2; });
+  t('job analysis: extracts skills and experience', function () { var a = analyzeJob(findJob(d, 3)); return a.req.indexOf('React') >= 0 && a.pref.indexOf('Docker') >= 0 && a.expYears === 2; });
+  return res;
+}
+function showTestResults() {
+  var r = runSelfTest(), fails = r.filter(function (x) { return !x.ok; }).length;
+  try { console.table(r); } catch (e) { /* ignore */ }
+  openModal('<h2>Self-Test: ' + (fails ? fails + ' failed' : 'all ' + r.length + ' passed') + '</h2>' + r.map(function (x) { return '<div class="testrow"><span style="color:' + (x.ok ? 'var(--ok)' : 'var(--bad)') + '">' + (x.ok ? '✓' : '✕') + '</span><span>' + esc(x.name) + (x.ok ? '' : '<br><span class="muted small">' + esc(x.detail) + '</span>') + '</span></div>'; }).join('') + '<div class="row" style="margin-top:14px"><button class="btn primary" data-act="close">Close</button></div>');
+  return r;
+}
+
+/* ======================= events ======================= */
+function afterChange(msg, isErr) { saveDB(); if (msg) toast(msg, isErr); render(); }
+function refreshTable() { var t = $('#candTable'); if (t) t.innerHTML = tableRows(candRows()); var b = $('#cmpBtn'); if (b) b.textContent = 'Compare Selected (' + sel.length + ')'; }
+var actions = {
+  demo: function () { loginNow(); },
+  menu: function () { var s = $('#side'); if (s) s.classList.toggle('open'); },
+  dd: function () { var d = $('#dd'); if (d) d.classList.toggle('open'); },
+  gosettings: function () { go('#/settings'); },
+  toggletheme: function () { db.settings.theme = db.settings.theme === 'light' ? 'dark' : 'light'; afterChange('Theme changed'); },
+  logout: function () { db.user = null; saveDB(); closeModal(); location.hash = ''; render(); },
+  close: function () { closeModal(); },
+  closebg: function (el, e) { if (e.target === el) closeModal(); },
+  print: function () { toast('Report generated'); try { window.print(); } catch (e) { showDevError('Print failed: ' + e.message); } },
+  newjob: function () { openModal(jobFormHTML(null)); },
+  editjob: function (el) { var j = findJob(db, el.dataset.id); if (j) openModal(jobFormHTML(j)); },
+  screen: function (el) { filters.jobId = el.dataset.id; go('#/candidates'); },
+  analyze: function (el) {
+    var j = findJob(db, el.dataset.id); if (!j) return;
+    el.disabled = true; el.innerHTML = '<span class="spin"></span> Analyzing…';
+    setTimeout(function () { try { j.analysis = analyzeJob(j); logEvent('Analyzed requirements for ' + j.title); afterChange('Requirements analyzed'); } catch (e) { showDevError('Analysis failed: ' + e.message); render(); } }, 350);
+  },
+  applyreq: function (el) { var j = findJob(db, el.dataset.id); if (!j || !j.analysis) return; j.req = normalizeSkills(j.analysis.req); j.pref = normalizeSkills(j.analysis.pref); if (j.analysis.expYears) j.exp = j.analysis.expYears; logEvent('Updated requirements for ' + j.title); afterChange('Job requirements updated'); },
+  status: function (el) { var id = Number(el.dataset.id), s = el.dataset.s; var c = findCand(db, id); if (setStatus(db, id, s)) afterChange(s === 'Shortlisted' ? c.name + ' shortlisted' : s === 'Rejected' ? c.name + ' rejected' : c.name + ' moved to ' + s); },
+  sel: function (el) { var id = Number(el.dataset.id), i = sel.indexOf(id); if (i >= 0) sel.splice(i, 1); else if (sel.length >= 4) { el.checked = false; toast('You can compare up to 4 candidates', true); } else sel.push(id); refreshTable(); },
+  compare: function () { if (sel.length < 2) toast('Select 2 to 4 candidates first', true); else go('#/compare'); },
+  cmpone: function (el) { var id = Number(el.dataset.id); if (sel.indexOf(id) < 0) { if (sel.length >= 4) { toast('You can compare up to 4 candidates', true); return; } sel.push(id); } if (sel.length < 2) toast('Added to comparison. Select one more candidate.'); else go('#/compare'); },
+  clearsel: function () { sel = []; render(); },
+  questions: function (el) { var c = findCand(db, el.dataset.id); if (c) { openModal(questionsHTML(c)); toast('Interview questions generated'); } },
+  runscreen: function () {
+    var pending = scoredAll(db).filter(function (r) { return r.c.status === 'New' || r.c.status === 'Under Review'; });
+    if (!pending.length) { toast('No candidates are pending review', true); return; }
+    pending.forEach(function (r) {
+      var s = scoreCandidate(r.c, r.j);
+      db.screenings.unshift({ t: new Date().toISOString(), candId: r.c.id, jobId: r.j.id, overall: s.overall });
+    });
+    db.screenings = db.screenings.slice(0, 50);
+    logEvent('Batch screening completed for ' + pending.length + ' candidate(s)');
+    afterChange('Screening completed for ' + pending.length + ' candidate(s)');
+  },
+  screenone: function (el) { var id = Number(el.dataset.id); el.disabled = true; el.innerHTML = '<span class="spin"></span> Screening…'; API.screenCandidate(id).then(function (r) { if (r) afterChange('Screening completed: ' + r.cand.name + ' — ' + r.score.overall + '%'); }).catch(function (e) { showDevError('Screening failed: ' + e.message); render(); }); },
+  runEval: function (el) { el.disabled = true; el.innerHTML = '<span class="spin"></span> Running evaluation…'; setTimeout(function () { try { var out = $('#evalOut'); if (out) out.innerHTML = evalResultsHTML(); el.disabled = false; el.textContent = 'Run Evaluation'; logEvent('AI evaluation run'); saveDB(); toast('Evaluation complete'); } catch (e) { showDevError('Evaluation failed: ' + e.message); el.disabled = false; el.textContent = 'Run Evaluation'; } }, 400); },
+  iqgen: function (el) {
+    var sv = $('#iqCand'), out = $('#iqOut'); if (!sv || !out) return;
+    el.disabled = true; el.innerHTML = '<span class="spin"></span> Generating…';
+    API.generateInterviewQuestions(Number(sv.value)).then(function (q) {
+      el.disabled = false; el.textContent = 'Generate Interview Kit';
+      if (!q) { out.innerHTML = '<div class="empty">Could not generate questions for this candidate.</div>'; return; }
+      out.innerHTML = '<h2>Interview Kit — Demo Generation</h2><p class="muted small">Template-based, generated locally from the candidate\u2019s skills, projects and job requirements. Not live AI. The production backend will call a real AI API.</p><h3 style="margin-top:10px">Technical</h3>' + ul(q.technical) + '<h3 style="margin-top:8px">Behavioral</h3>' + ul(q.behavioral) + '<h3 style="margin-top:8px">Project</h3>' + ul(q.project) + '<button class="btn sm" style="margin-top:10px" data-act="iqcopy">Copy Questions</button>';
+      out.dataset.copy = JSON.stringify(q.technical.concat(q.behavioral, q.project));
+      logEvent('Interview kit generated'); saveDB();
+    }).catch(function (e) { el.disabled = false; el.textContent = 'Generate Interview Kit'; showDevError('Question generation failed: ' + e.message); });
+  },
+  iqcopy: function (el) {
+    var out = $('#iqOut'); if (!out || !out.dataset.copy) return;
+    try { navigator.clipboard.writeText(JSON.parse(out.dataset.copy).map(function (q, i) { return (i + 1) + '. ' + q; }).join('\n\n')).then(function () { toast('Questions copied to clipboard'); }, function () { toast('Clipboard unavailable in this browser', true); }); } catch (e) { toast('Clipboard unavailable', true); }
+  },
+  simedit: function () { simWeights = (function () { var w = currentWeights(); return { skills: w.skills, experience: w.experience, semantic: w.semantic, education: w.education, projects: w.projects }; })(); render(); toast('Simulator active — drag the sliders'); },
+  simreset: function () { simWeights = null; render(); toast('Reset to saved weights'); },
+  simsave: function () {
+    if (!simWeights) return;
+    var sum = simWeights.skills + simWeights.experience + simWeights.semantic + simWeights.education + simWeights.projects;
+    if (Math.abs(sum - 1) > 0.02) { toast('Weights must total 100% before saving (currently ' + Math.round(sum * 100) + '%)', true); return; }
+    db.settings.weights = simWeights; simWeights = null; logEvent('Scoring weights updated'); afterChange('Default scoring weights saved');
+  },
+  selftestbtn: function () { showTestResults(); },
+  sortk: function (el) { var k = el.getAttribute('data-k'); if (k === 'score') { filters.sort = filters.sort === 'high' ? 'low' : 'high'; } else { filters.sort = 'new'; } render(); },
+  bell: function () {
+    openModal('<h2>Notifications</h2>' + (db.log.length ? db.log.slice(0, 5).map(function (l) { return '<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)"><span>' + esc(l.m) + '</span><span class="muted small">' + fmtDate(l.t) + '</span></div>'; }).join('') : '<p class="muted">No notifications.</p>') + '<div class="row" style="margin-top:14px"><button class="btn primary" data-act="close">Close</button></div>');
+  },
+  report: function (el) { toast('Report generated'); go('#/reports/' + el.dataset.id); },
+  loadprofile: function () {
+    if (!upload || !upload.ok) { toast('Select a valid PDF first', true); return; }
+    var idx = -1; for (var i = 0; i < POOL.length; i++) if (db.poolUsed.indexOf(i) < 0) { idx = i; break; }
+    if (idx < 0) { toast('All sample profiles are already loaded. Reset demo data to reuse them.', true); return; }
+    var p = POOL[idx], job = Number(($('#upJob') || {}).value) || db.jobs[0].id;
+    if (!findJob(db, job)) { toast('Create a job first', true); return; }
+    db.poolUsed.push(idx);
+    var c = JSON.parse(JSON.stringify(p)); c.id = db.nextCandId++; c.jobId = job; c.email = p.name.toLowerCase().replace(/\s+/g, '.') + '@example.com'; c.status = 'New'; c.notes = ''; c.created = new Date().toISOString();
+    db.cands.push(c); logEvent('Demo profile "' + p.name + '" loaded for resume ' + upload.name); upload = null;
+    afterChange('Demo candidate profile loaded');
+  },
+  resetask: function () { openModal('<h2>Reset Demo Data?</h2><p class="muted">This restores the original jobs and candidates and clears your changes in this browser.</p><div class="row" style="margin-top:14px"><button class="btn bad" data-act="resetdo">Reset Demo Data</button><button class="btn" data-act="close">Cancel</button></div>'); },
+  resetdo: function () { closeModal(); try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } db = defaultData(); db.user = { email: DEMO_EMAIL }; sel = []; upload = null; filters = { q: '', jobId: '', status: '', min: 0, sort: 'high' }; go('#/dashboard'); saveDB(); render(); toast('Demo data reset'); },
+  selftest: function (el, e) { e.preventDefault(); showTestResults(); }
+};
+function loginNow() { db.user = { email: DEMO_EMAIL }; saveDB(); if (!location.hash || location.hash === '#/' || location.hash === '#') location.hash = '#/dashboard'; render(); if (pendingNotice) { toast(pendingNotice); pendingNotice = ''; } }
+
+document.addEventListener('click', function (e) {
+  var dd = $('#dd'); if (dd && !e.target.closest('#dd')) dd.classList.remove('open');
+  var el = e.target.closest('[data-act]'); if (!el) return;
+  var a = el.getAttribute('data-act');
+  if (el.type === 'checkbox' && e.type === 'click') { /* handled below via change */ return; }
+  var fn = actions[a]; if (!fn) return;
+  try { fn(el, e); } catch (err) { showDevError('Action "' + a + '" failed: ' + err.message); }
+  if (el.closest('.dd-menu')) { var d2 = $('#dd'); if (d2) d2.classList.remove('open'); }
+});
+document.addEventListener('change', function (e) {
+  var t = e.target;
+  try {
+    if (t.matches && t.matches('input[data-act="sel"]')) { actions.sel(t); return; }
+    if (t.id === 'upFile') {
+      var f = t.files && t.files[0], msg = $('#upMsg'), btn = $('#upLoad');
+      if (!f) { upload = null; btn.disabled = true; msg.textContent = 'Select a PDF (maximum 5 MB). Browser-only demo: real PDF extraction requires the production backend. The file is not read.'; return; }
+      var isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+      if (!isPdf) { upload = { ok: false }; btn.disabled = true; msg.innerHTML = '<span style="color:var(--bad)">Only PDF files are supported.</span>'; return; }
+      if (f.size > 5 * 1024 * 1024) { upload = { ok: false }; btn.disabled = true; msg.innerHTML = '<span style="color:var(--bad)">This file is larger than 5 MB.</span>'; return; }
+      upload = { ok: true, name: f.name }; btn.disabled = false;
+      msg.innerHTML = '<span style="color:var(--ok)">Resume uploaded successfully.</span> ' + esc(f.name) + ' (' + Math.max(1, Math.round(f.size / 1024)) + ' KB). Browser-only demo: real PDF extraction requires the production backend, so the file is not read. Use "Load Demo Candidate Profile" to continue.';
+      return;
+    }
+    if (t.getAttribute('data-change') === 'setstatus') { actions.status({ dataset: { id: t.getAttribute('data-id'), s: t.value } }); return; }
+    if (t.id === 'fJob') { filters.jobId = t.value; refreshTable(); }
+    else if (t.id === 'fStatus') { filters.status = t.value; refreshTable(); }
+    else if (t.id === 'fSort') { filters.sort = t.value; refreshTable(); }
+    else if (t.id === 'fExp') { filters.exp = t.value; refreshTable(); }
+    else if (t.id === 'rJob') { filters.jobId = t.value; render(); }
+    else if (t.id === 'rStatus') { filters.status = t.value; render(); }
+    else if (t.id === 'rMin') { filters.min = Number(t.value) || 0; render(); }
+  } catch (err) { showDevError('Change handler failed: ' + err.message); }
+});
+document.addEventListener('input', function (e) {
+  var t = e.target;
+  if (t.id === 'fQ') { filters.q = t.value; refreshTable(); }
+  else if (t.id === 'fMin') { filters.min = Number(t.value) || 0; refreshTable(); }
+  else if (t.id === 'topSearch') { filters.q = t.value; if (parseRoute(location.hash).page === 'candidates') refreshTable(); }
+  else if (t.id === 'rMin' && t.type === 'range') { /* simulator slider handled below */ }
+  if (t.hasAttribute && t.hasAttribute('data-simw') && simWeights) {
+    var k = t.getAttribute('data-simw'), v = Number(t.value) / 100;
+    if (k in simWeights) { simWeights[k] = v; render(); var s2 = $('[data-simw="' + k + '"]'); if (s2) s2.focus(); }
+  }
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeModal();
+  if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('th.sortable')) { e.preventDefault(); try { actions.sortk(e.target); } catch (err) { showDevError('Sort failed: ' + err.message); } }
+});
+document.addEventListener('submit', function (e) {
+  var f = e.target; e.preventDefault();
+  try {
+    if (f.id === 'loginForm') {
+      var em = $('#email').value, pw = $('#password').value;
+      if (authenticate(em, pw)) loginNow(); else $('#loginErr').textContent = 'Invalid email or password. Use demo@hirelens.ai / password.';
+      return;
+    }
+    var kind = f.getAttribute('data-form');
+    if (kind === 'job') {
+      var title = $('#jfTitle').value.trim(), company = $('#jfCompany').value.trim(), desc = $('#jfDesc').value.trim(), exp = Number($('#jfExp').value) || 0, err = $('#jfErr');
+      if (!title || !company || !desc) { err.textContent = 'Job title, company and description are required.'; return; }
+      if (exp < 0 || exp > 40) { err.textContent = 'Experience must be between 0 and 40 years.'; return; }
+      var data = { title: title, company: company, location: $('#jfLocation').value.trim() || 'Not specified', exp: exp, edu: $('#jfEdu').value.trim(), req: splitSkills($('#jfReq').value), pref: splitSkills($('#jfPref').value), desc: desc };
+      var id = f.getAttribute('data-id');
+      if (id) { var j = findJob(db, id); Object.keys(data).forEach(function (k) { j[k] = data[k]; }); j.analysis = null; logEvent('Updated job ' + title); closeModal(); afterChange('Job updated'); }
+      else { data.id = db.nextJobId++; data.status = 'Open'; data.created = new Date().toISOString(); data.analysis = null; db.jobs.push(data); logEvent('Created job ' + title); closeModal(); saveDB(); toast('Job created successfully'); go('#/jobs'); }
+    } else if (kind === 'notes') {
+      var c = findCand(db, f.getAttribute('data-id')); if (c) { c.notes = $('#notesText').value; saveDB(); toast('Notes saved'); }
+    } else if (kind === 'settings') {
+      db.settings.name = $('#sName').value.trim() || 'Recruiter'; db.settings.email = $('#sEmail').value.trim(); db.settings.company = $('#sCompany').value.trim() || 'Company'; db.settings.notify = $('#sNotify').checked; db.settings.theme = $('#sTheme').value;
+      afterChange('Settings saved');
+    }
+  } catch (err2) { showDevError('Form error: ' + err2.message); }
+});
+document.addEventListener('click', function (e) { if (e.target && e.target.id === 'demoBtn') loginNow(); });
+window.addEventListener('hashchange', function () { render(); window.scrollTo(0, 0); });
+
+/* ======================= startup ======================= */
+function initializeApplication() {
+  appEl = document.getElementById('app');
+  LOGIN_HTML = appEl.innerHTML;
+  db = loadDB();
+  window.runSelfTest = showTestResults;
+  window.HireLens = { runSelfTest: runSelfTest, scoreCandidate: scoreCandidate, normalizeSkill: normalizeSkill, resetData: function () { localStorage.removeItem(KEY); location.reload(); } };
+  render();
+  if (pendingNotice && db.user) { toast(pendingNotice); pendingNotice = ''; }
+}
+try { initializeApplication(); }
+catch (error) {
+  showDevError('Startup error: ' + (error && error.message ? error.message : error));
+}
+})();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
